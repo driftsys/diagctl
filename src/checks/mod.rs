@@ -1,6 +1,7 @@
 use crate::svg::Svg;
 
 pub mod aspect;
+pub mod viewbox;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
@@ -17,5 +18,5 @@ pub struct CheckResult {
 }
 
 pub fn run_all(svg: &Svg) -> Vec<CheckResult> {
-    vec![aspect::check(svg)]
+    vec![viewbox::check(svg), aspect::check(svg)]
 }
