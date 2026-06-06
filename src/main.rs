@@ -1,1 +1,3 @@
+mod svg;
+
 fn main() {}
