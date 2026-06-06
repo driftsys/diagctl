@@ -2,7 +2,11 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "diagctl", version, about = "Automates the tech-diagramming quality gate")]
+#[command(
+    name = "diagctl",
+    version,
+    about = "Automates the tech-diagramming quality gate"
+)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
