@@ -84,3 +84,21 @@ fn stub_freshness_exits_2() {
         .assert()
         .code(2);
 }
+
+#[test]
+fn check_d2_clean_exits_0() {
+    diagctl()
+        .args(["check", "tests/fixtures/d2-clean.svg"])
+        .assert()
+        .code(0)
+        .stdout(contains("node-overlap"));
+}
+
+#[test]
+fn check_overlap_exits_1_naming_node_overlap() {
+    diagctl()
+        .args(["check", "tests/fixtures/overlap.svg"])
+        .assert()
+        .code(1)
+        .stdout(contains("node-overlap"));
+}

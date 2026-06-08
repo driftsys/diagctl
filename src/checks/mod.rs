@@ -1,6 +1,7 @@
 use crate::svg::Svg;
 
 pub mod aspect;
+pub mod node_overlap;
 pub mod viewbox;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,5 +19,9 @@ pub struct CheckResult {
 }
 
 pub fn run_all(svg: &Svg) -> Vec<CheckResult> {
-    vec![viewbox::check(svg), aspect::check(svg)]
+    vec![
+        viewbox::check(svg),
+        aspect::check(svg),
+        node_overlap::check(svg),
+    ]
 }
