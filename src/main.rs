@@ -1,6 +1,7 @@
 mod checks;
 mod cli;
 mod commands;
+mod geom;
 mod svg;
 
 use clap::Parser;
