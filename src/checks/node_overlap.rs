@@ -28,7 +28,10 @@ pub fn check(svg: &Svg) -> CheckResult {
     let detail = if overlaps == 0 {
         format!("{} node(s), no overlapping pairs", nodes.len())
     } else {
-        format!("{overlaps} overlapping node pair(s) among {} nodes", nodes.len())
+        format!(
+            "{overlaps} overlapping node pair(s) among {} nodes",
+            nodes.len()
+        )
     };
     CheckResult {
         id: "node-overlap",
