@@ -120,3 +120,12 @@ fn check_cross_clean_exits_0() {
         .code(0)
         .stdout(contains("edge-crossings"));
 }
+
+#[test]
+fn check_edge_through_node_exits_1() {
+    diagctl()
+        .args(["check", "tests/fixtures/edge-through-node.svg"])
+        .assert()
+        .code(1)
+        .stdout(contains("edge-node-overlap"));
+}
