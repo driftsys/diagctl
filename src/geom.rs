@@ -1,5 +1,7 @@
 //! Geometry foundation: classify a rendered SVG into nodes/edges/labels/background.
 
+pub mod seg;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BBox {
     pub x: f32,
