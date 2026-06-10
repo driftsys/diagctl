@@ -1,6 +1,7 @@
 use crate::svg::Svg;
 
 pub mod aspect;
+pub mod edge_crossings;
 pub mod node_overlap;
 pub mod viewbox;
 
@@ -23,5 +24,6 @@ pub fn run_all(svg: &Svg) -> Vec<CheckResult> {
         viewbox::check(svg),
         aspect::check(svg),
         node_overlap::check(svg),
+        edge_crossings::check(svg),
     ]
 }
