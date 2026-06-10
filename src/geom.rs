@@ -42,6 +42,8 @@ impl BBox {
 }
 
 use crate::svg::Svg;
+use seg::Point;
+use usvg::tiny_skia_path::PathSegment;
 use usvg::{Group, Node};
 
 pub const BG_CANVAS_FRACTION: f32 = 0.95;
@@ -157,6 +159,83 @@ pub fn nodes(svg: &Svg) -> Vec<BBox> {
         .collect()
 }
 
+fn path_to_polyline(p: &usvg::Path) -> Vec<Point> {
+    let t = p.abs_transform();
+    let map = |x: f32, y: f32| -> Point {
+        let mut pts = [usvg::tiny_skia_path::Point::from_xy(x, y)];
+        t.map_points(&mut pts);
+        Point {
+            x: pts[0].x,
+            y: pts[0].y,
+        }
+    };
+    let mut poly: Vec<Point> = Vec::new();
+    let mut cur = Point { x: 0.0, y: 0.0 };
+    for s in p.data().segments() {
+        match s {
+            PathSegment::MoveTo(pt) => {
+                cur = map(pt.x, pt.y);
+                poly.push(cur);
+            }
+            PathSegment::LineTo(pt) => {
+                cur = map(pt.x, pt.y);
+                poly.push(cur);
+            }
+            PathSegment::QuadTo(a, b) => {
+                let (a, b) = (map(a.x, a.y), map(b.x, b.y));
+                seg::flatten_quad(cur, a, b, &mut poly);
+                cur = b;
+            }
+            PathSegment::CubicTo(a, b, c) => {
+                let (a, b, c) = (map(a.x, a.y), map(b.x, b.y), map(c.x, c.y));
+                seg::flatten_cubic(cur, a, b, c, &mut poly);
+                cur = c;
+            }
+            PathSegment::Close => {}
+        }
+    }
+    poly
+}
+
+fn polyline_length(poly: &[Point]) -> f32 {
+    poly.windows(2)
+        .map(|w| ((w[1].x - w[0].x).powi(2) + (w[1].y - w[0].y).powi(2)).sqrt())
+        .sum()
+}
+
+/// The connector polyline of an edge unit: its longest `fill=none` stroke path.
+fn edge_polyline(unit: &Node) -> Option<Vec<Point>> {
+    let mut best: Option<Vec<Point>> = None;
+    let mut best_len = 0.0f32;
+    for_each_path(unit, &mut |p| {
+        if p.fill().is_none() && p.stroke().is_some() {
+            let poly = path_to_polyline(p);
+            let len = polyline_length(&poly);
+            if len > best_len {
+                best_len = len;
+                best = Some(poly);
+            }
+        }
+    });
+    best.filter(|poly| poly.len() >= 2)
+}
+
+/// Flattened absolute polylines for every classified edge unit.
+pub fn edges(svg: &Svg) -> Vec<Vec<Point>> {
+    let size = svg.tree.size();
+    let canvas_area = size.width() * size.height();
+    let content = content_group(svg.tree.root());
+    let mut out = Vec::new();
+    for u in content.children() {
+        if classify(u, canvas_area).kind == Kind::Edge {
+            if let Some(poly) = edge_polyline(u) {
+                out.push(poly);
+            }
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod model_tests {
     use super::*;
@@ -225,5 +304,29 @@ mod tests {
     fn inset_shrinks_on_all_sides() {
         let a = b(0.0, 0.0, 10.0, 10.0).inset(1.0);
         assert_eq!(a, b(1.0, 1.0, 8.0, 8.0));
+    }
+}
+
+#[cfg(test)]
+mod edge_tests {
+    use super::*;
+    use crate::svg::load;
+    use std::path::Path;
+
+    #[test]
+    fn cross_clean_extracts_four_edges() {
+        let svg = load(Path::new("tests/fixtures/cross-clean.svg")).unwrap();
+        let es = edges(&svg);
+        assert_eq!(es.len(), 4, "cross-clean edge count");
+        assert!(
+            es.iter().all(|p| p.len() >= 2),
+            "every edge polyline has >=2 points"
+        );
+    }
+
+    #[test]
+    fn crossing_fixture_extracts_two_edges() {
+        let svg = load(Path::new("tests/fixtures/crossing.svg")).unwrap();
+        assert_eq!(edges(&svg).len(), 2, "crossing edge count");
     }
 }
