@@ -129,3 +129,12 @@ fn check_edge_through_node_exits_1() {
         .code(1)
         .stdout(contains("edge-node-overlap"));
 }
+
+#[test]
+fn check_low_contrast_exits_1() {
+    diagctl()
+        .args(["check", "tests/fixtures/low-contrast.svg"])
+        .assert()
+        .code(1)
+        .stdout(contains("contrast"));
+}

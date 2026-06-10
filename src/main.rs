@@ -1,5 +1,6 @@
 mod checks;
 mod cli;
+mod color;
 mod commands;
 mod geom;
 mod svg;

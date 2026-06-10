@@ -1,6 +1,7 @@
 use crate::svg::Svg;
 
 pub mod aspect;
+pub mod contrast;
 pub mod edge_crossings;
 pub mod edge_node_overlap;
 pub mod node_overlap;
@@ -27,5 +28,6 @@ pub fn run_all(svg: &Svg) -> Vec<CheckResult> {
         node_overlap::check(svg),
         edge_crossings::check(svg),
         edge_node_overlap::check(svg),
+        contrast::check(svg),
     ]
 }
