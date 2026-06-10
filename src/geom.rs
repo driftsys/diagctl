@@ -164,13 +164,10 @@ fn path_to_polyline(p: &usvg::Path) -> Vec<Point> {
     let map = |x: f32, y: f32| -> Point {
         let mut pts = [usvg::tiny_skia_path::Point::from_xy(x, y)];
         t.map_points(&mut pts);
-        Point {
-            x: pts[0].x,
-            y: pts[0].y,
-        }
+        Point::new(pts[0].x, pts[0].y)
     };
     let mut poly: Vec<Point> = Vec::new();
-    let mut cur = Point { x: 0.0, y: 0.0 };
+    let mut cur = Point::new(0.0, 0.0);
     for s in p.data().segments() {
         match s {
             PathSegment::MoveTo(pt) => {
