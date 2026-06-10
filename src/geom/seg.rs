@@ -98,9 +98,62 @@ pub fn segment_intersection(a: Point, b: Point, c: Point, d: Point) -> Option<Po
     }
 }
 
+/// True iff segment a–b intersects the axis-aligned rect (rx, ry, rw, rh):
+/// either endpoint inside, or the segment properly crosses one of the 4 sides.
+pub fn segment_enters_rect(a: Point, b: Point, rx: f32, ry: f32, rw: f32, rh: f32) -> bool {
+    let inside = |p: Point| p.x >= rx && p.x <= rx + rw && p.y >= ry && p.y <= ry + rh;
+    if inside(a) || inside(b) {
+        return true;
+    }
+    let tl = Point::new(rx, ry);
+    let tr = Point::new(rx + rw, ry);
+    let br = Point::new(rx + rw, ry + rh);
+    let bl = Point::new(rx, ry + rh);
+    segment_intersection(a, b, tl, tr).is_some()
+        || segment_intersection(a, b, tr, br).is_some()
+        || segment_intersection(a, b, br, bl).is_some()
+        || segment_intersection(a, b, bl, tl).is_some()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn segment_through_rect_enters() {
+        assert!(segment_enters_rect(
+            Point::new(0.0, 5.0),
+            Point::new(20.0, 5.0),
+            5.0,
+            0.0,
+            10.0,
+            10.0
+        ));
+    }
+
+    #[test]
+    fn segment_missing_rect_does_not_enter() {
+        assert!(!segment_enters_rect(
+            Point::new(0.0, 50.0),
+            Point::new(20.0, 50.0),
+            5.0,
+            0.0,
+            10.0,
+            10.0
+        ));
+    }
+
+    #[test]
+    fn segment_with_endpoint_inside_enters() {
+        assert!(segment_enters_rect(
+            Point::new(10.0, 5.0),
+            Point::new(30.0, 5.0),
+            5.0,
+            0.0,
+            10.0,
+            10.0
+        ));
+    }
 
     #[test]
     fn intersecting_segments_return_crossing_point() {
