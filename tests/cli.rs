@@ -102,3 +102,21 @@ fn check_overlap_exits_1_naming_node_overlap() {
         .code(1)
         .stdout(contains("node-overlap"));
 }
+
+#[test]
+fn check_crossing_exits_1_naming_edge_crossings() {
+    diagctl()
+        .args(["check", "tests/fixtures/crossing.svg"])
+        .assert()
+        .code(1)
+        .stdout(contains("edge-crossings"));
+}
+
+#[test]
+fn check_cross_clean_exits_0() {
+    diagctl()
+        .args(["check", "tests/fixtures/cross-clean.svg"])
+        .assert()
+        .code(0)
+        .stdout(contains("edge-crossings"));
+}
