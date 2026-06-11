@@ -4,28 +4,49 @@ A single, hermetic, cross-platform CLI that automates the **tech-diagramming**
 quality gate — the Phase-2 tooling for the
 [metapowers](https://github.com/driftsys/metapowers) diagramming skill family.
 
-> **Status:** walking skeleton. `check` runs the Layer-0 viewBox + Layer-2
-> aspect-ratio gate today; `optimize`/`ascii`/`freshness` are stubbed. Full
+> **Status:** `check` runs a **9-check** deterministic gate across Layers 0–2
+> (no vision, near-zero cost). `optimize`/`ascii`/`freshness` are stubbed. Full
 > design, scope, and acceptance criteria live in
-> **[metapowers#14](https://github.com/driftsys/metapowers/issues/14)**.
+> **[metapowers#14](https://github.com/driftsys/metapowers/issues/14)**; remaining
+> checks are tracked in **[#2](https://github.com/driftsys/diagctl/issues/2)**.
 
-## What it will do
+## What it does
 
 One standalone binary (zero runtime dependencies) with these subcommands:
 
-- **`check`** — the diagram gate.
-  - _Layer-0/1 conformance:_ `viewBox` present, no fixed `width`/`height`,
-    stroke/font thresholds, font-family chain, source+SVG pair naming, WCAG
-    contrast.
-  - _Layer-2 geometry_ (computed deterministically from the rendered SVG — no
-    vision, near-zero cost): node–node overlap, edge-through-node, edge–edge
-    crossings, label overflow, aspect ratio.
-- **`optimize`** — conservative SVGO-style pass (keeps `viewBox`/`title`/`desc`).
-- **`ascii`** — deterministic grid render + width-aware alignment validation.
-- **`freshness`** — re-render → optimize → byte-diff (CI-stable pair freshness).
+- **`check`** — the diagram gate. Each check prints `PASS`/`FAIL` with a layer tag;
+  exit `0` clean · `1` ≥1 check failed · `2` operational error.
+
+  | Check | Layer | What it flags |
+  | --- | --- | --- |
+  | `viewbox-present` | 0 | root `<svg>` missing a `viewBox` |
+  | `no-fixed-dimensions` | 0 | root `<svg>` with fixed `width`/`height` |
+  | `contrast` | 1 | stroke vs background below WCAG 3:1 |
+  | `min-stroke-width` | 1 | hairline strokes below 0.5px |
+  | `font-family` | 1 | text with a single, non-generic family (no fallback) |
+  | `aspect-ratio` | 2 | viewBox long/short ratio above 2.5 |
+  | `node-overlap` | 2 | bounding-box overlap of unrelated nodes |
+  | `edge-crossings` | 2 | edge–edge crossings in open whitespace |
+  | `edge-node-overlap` | 2 | an edge routed through an unrelated node |
+
+  Layer-2 geometry is computed from the rendered SVG via `usvg` (resolved
+  geometry + transforms) with hand-rolled bezier-flattening / segment math — no
+  vision, near-zero cost.
+
+- **`optimize`** — conservative SVGO-style pass _(not yet implemented; exit 2)_.
+- **`ascii`** — deterministic grid render + width-aware alignment _(not yet implemented; exit 2)_.
+- **`freshness`** — re-render → optimize → byte-diff _(not yet implemented; exit 2)_.
 
 It **reimplements** these checks in one binary rather than gluing svgo / svglint /
 xmllint / contrast tools together — so consumers get a single dependency-free gate.
+
+### Not yet implemented (tracked in [#2](https://github.com/driftsys/diagctl/issues/2))
+
+- **label overflow** — text bbox vs container; needs font loading, which makes text
+  metrics non-deterministic across platforms. Deferred pending a deterministic approach.
+- **source+SVG pair naming + freshness** — a repo/filesystem concern, distinct from the
+  single-SVG checks.
+- **`optimize` / `ascii` / `freshness`** subcommand bodies.
 
 ## Relationship to metapowers
 
@@ -40,7 +61,8 @@ calls geometry can't score) is tracked separately in
 **Rust.** The deciding fork (metapowers#14) was `optimize` (SVGO) — JS-native, no
 proven Rust port — and it is deferred to a stub, neutralising Rust's only weakness.
 Everything load-bearing favours Rust: the Layer-2 geometry checks build on
-`usvg`/`resvg` + `lyon`, and a static binary is ~2–8 MB vs `deno compile`'s ~80–100 MB.
+`usvg`/`resvg` (resolved geometry + transforms) with hand-rolled bezier/segment math
+(no heavy geometry dep), and a static binary is ~2–8 MB vs `deno compile`'s ~80–100 MB.
 
 ## Build, test, run
 
@@ -52,13 +74,12 @@ cargo test             # run the suite (unit + binary integration tests)
 cargo run -- --help    # see the subcommands
 cargo run -- --version
 
-# the one real slice today: the diagram gate
+# the diagram gate (9 checks, Layers 0–2)
 cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
 ```
 
-`check` runs today: **viewBox present** (Layer-0) and **aspect-ratio** (Layer-2,
-long/short viewBox ratio, fails above 2.5). `optimize`, `ascii`, and `freshness` are
-stubbed (exit 2) pending the next milestone.
+`check` runs the nine checks in the table above. `optimize`, `ascii`, and `freshness`
+are stubbed (exit 2) pending later milestones.
 
 ## License
 
