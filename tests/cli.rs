@@ -156,3 +156,12 @@ fn check_font_single_exits_1() {
         .code(1)
         .stdout(contains("font-family"));
 }
+
+#[test]
+fn check_fixed_dims_exits_1() {
+    diagctl()
+        .args(["check", "tests/fixtures/fixed-dims.svg"])
+        .assert()
+        .code(1)
+        .stdout(contains("no-fixed-dimensions"));
+}
