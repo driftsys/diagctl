@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120">
+  <g>
+    <g><rect x="40" y="30" width="120" height="60" fill="#ffffff" stroke="#333333"/></g>
+    <text x="100" y="65" font-family="Arial, sans-serif" font-size="14" fill="#000000">Hi</text>
+  </g>
+</svg>
