@@ -138,3 +138,21 @@ fn check_low_contrast_exits_1() {
         .code(1)
         .stdout(contains("contrast"));
 }
+
+#[test]
+fn check_thin_stroke_exits_1() {
+    diagctl()
+        .args(["check", "tests/fixtures/thin-stroke.svg"])
+        .assert()
+        .code(1)
+        .stdout(contains("min-stroke-width"));
+}
+
+#[test]
+fn check_font_single_exits_1() {
+    diagctl()
+        .args(["check", "tests/fixtures/font-single.svg"])
+        .assert()
+        .code(1)
+        .stdout(contains("font-family"));
+}

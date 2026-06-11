@@ -4,6 +4,8 @@ pub mod aspect;
 pub mod contrast;
 pub mod edge_crossings;
 pub mod edge_node_overlap;
+pub mod font_family;
+pub mod min_stroke_width;
 pub mod node_overlap;
 pub mod viewbox;
 
@@ -29,5 +31,7 @@ pub fn run_all(svg: &Svg) -> Vec<CheckResult> {
         edge_crossings::check(svg),
         edge_node_overlap::check(svg),
         contrast::check(svg),
+        min_stroke_width::check(svg),
+        font_family::check(svg),
     ]
 }
