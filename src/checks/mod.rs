@@ -6,6 +6,7 @@ pub mod edge_crossings;
 pub mod edge_node_overlap;
 pub mod font_family;
 pub mod min_stroke_width;
+pub mod no_fixed_dimensions;
 pub mod node_overlap;
 pub mod viewbox;
 
@@ -26,6 +27,7 @@ pub struct CheckResult {
 pub fn run_all(svg: &Svg) -> Vec<CheckResult> {
     vec![
         viewbox::check(svg),
+        no_fixed_dimensions::check(svg),
         aspect::check(svg),
         node_overlap::check(svg),
         edge_crossings::check(svg),
