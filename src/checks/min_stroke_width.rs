@@ -17,7 +17,11 @@ pub fn check(svg: &Svg) -> CheckResult {
             min_w = w;
         }
     }
-    let status = if thin == 0 { Status::Pass } else { Status::Fail };
+    let status = if thin == 0 {
+        Status::Pass
+    } else {
+        Status::Fail
+    };
     let detail = if min_w.is_finite() {
         format!("{thin} stroke(s) below {MIN_STROKE_WIDTH}px; thinnest {min_w:.2}px")
     } else {
