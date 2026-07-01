@@ -110,4 +110,12 @@ mod tests {
     fn in_band_no_labels_passes() {
         assert_eq!(run("tests/fixtures/in-band.svg").status, Status::Pass);
     }
+
+    #[test]
+    fn near_edge_within_tolerance_passes() {
+        assert_eq!(
+            run("tests/fixtures/label-near-edge.svg").status,
+            Status::Pass
+        );
+    }
 }
