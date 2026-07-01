@@ -4,7 +4,7 @@ A single, hermetic, cross-platform CLI that automates the **tech-diagramming**
 quality gate — the Phase-2 tooling for the
 [metapowers](https://github.com/driftsys/metapowers) diagramming skill family.
 
-> **Status:** `check` runs a **9-check** deterministic gate across Layers 0–2
+> **Status:** `check` runs a **10-check** deterministic gate across Layers 0–2
 > (no vision, near-zero cost). `optimize`/`ascii`/`freshness` are stubbed. Full
 > design, scope, and acceptance criteria live in
 > **[metapowers#14](https://github.com/driftsys/metapowers/issues/14)**; remaining
@@ -28,10 +28,12 @@ One standalone binary (zero runtime dependencies) with these subcommands:
   | `node-overlap` | 2 | bounding-box overlap of unrelated nodes |
   | `edge-crossings` | 2 | edge–edge crossings in open whitespace |
   | `edge-node-overlap` | 2 | an edge routed through an unrelated node |
+  | `label-overflow` | 2 | label text clipped at the viewBox edge |
 
   Layer-2 geometry is computed from the rendered SVG via `usvg` (resolved
   geometry + transforms) with hand-rolled bezier-flattening / segment math — no
-  vision, near-zero cost.
+  vision, near-zero cost. `label-overflow` additionally shapes text with an
+  embedded metrics font so text geometry is deterministic across platforms.
 
 - **`optimize`** — conservative SVGO-style pass _(not yet implemented; exit 2)_.
 - **`ascii`** — deterministic grid render + width-aware alignment _(not yet implemented; exit 2)_.
@@ -42,8 +44,9 @@ xmllint / contrast tools together — so consumers get a single dependency-free 
 
 ### Not yet implemented (tracked in [#2](https://github.com/driftsys/diagctl/issues/2))
 
-- **label overflow** — text bbox vs container; needs font loading, which makes text
-  metrics non-deterministic across platforms. Deferred pending a deterministic approach.
+- **label overflow (container variant)** — label vs its enclosing node. The canvas
+  variant (`label-overflow`) now ships, using an embedded metrics font for deterministic
+  geometry; container-fit is deferred pending trusted per-node font metrics.
 - **source+SVG pair naming + freshness** — a repo/filesystem concern, distinct from the
   single-SVG checks.
 - **`optimize` / `ascii` / `freshness`** subcommand bodies.
@@ -78,7 +81,7 @@ cargo run -- --version
 cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
 ```
 
-`check` runs the nine checks in the table above. `optimize`, `ascii`, and `freshness`
+`check` runs the ten checks in the table above. `optimize`, `ascii`, and `freshness`
 are stubbed (exit 2) pending later milestones.
 
 ## License
