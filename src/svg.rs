@@ -23,8 +23,6 @@ const BUNDLED_FAMILY: &str = "DejaVu Sans";
 ///
 /// Used only by the `label-overflow` check; the shared `load` path keeps its empty-font tree
 /// so the other checks are unaffected.
-// TODO(label-overflow): remove this allow once the label-overflow check calls shaped_tree.
-#[allow(dead_code)]
 pub fn shaped_tree(svg: &Svg) -> anyhow::Result<usvg::Tree> {
     let mut opt = usvg::Options::default();
     {
