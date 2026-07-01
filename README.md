@@ -77,7 +77,7 @@ cargo test             # run the suite (unit + binary integration tests)
 cargo run -- --help    # see the subcommands
 cargo run -- --version
 
-# the diagram gate (9 checks, Layers 0–2)
+# the diagram gate (10 checks, Layers 0–2)
 cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
 ```
 
