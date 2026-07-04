@@ -174,3 +174,12 @@ fn check_label_overflow_exits_1() {
         .code(1)
         .stdout(contains("label-overflow"));
 }
+
+#[test]
+fn check_tiny_font_exits_1_naming_min_font_size() {
+    diagctl()
+        .args(["check", "tests/fixtures/tiny-font.svg"])
+        .assert()
+        .code(1)
+        .stdout(contains("min-font-size"));
+}
