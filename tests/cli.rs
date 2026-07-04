@@ -165,3 +165,12 @@ fn check_fixed_dims_exits_1() {
         .code(1)
         .stdout(contains("no-fixed-dimensions"));
 }
+
+#[test]
+fn check_label_overflow_exits_1() {
+    diagctl()
+        .args(["check", "tests/fixtures/label-overflow.svg"])
+        .assert()
+        .code(1)
+        .stdout(contains("label-overflow"));
+}
