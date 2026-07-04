@@ -4,7 +4,7 @@ A single, hermetic, cross-platform CLI that automates the **tech-diagramming**
 quality gate — the Phase-2 tooling for the
 [metapowers](https://github.com/driftsys/metapowers) diagramming skill family.
 
-> **Status:** `check` runs a **10-check** deterministic gate across Layers 0–2
+> **Status:** `check` runs an **11-check** deterministic gate across Layers 0–2
 > (no vision, near-zero cost). `optimize`/`ascii`/`freshness` are stubbed. Full
 > design, scope, and acceptance criteria live in
 > **[metapowers#14](https://github.com/driftsys/metapowers/issues/14)**; remaining
@@ -24,6 +24,7 @@ One standalone binary (zero runtime dependencies) with these subcommands:
   | `contrast` | 1 | stroke vs background below WCAG 3:1 |
   | `min-stroke-width` | 1 | hairline strokes below 0.5px |
   | `font-family` | 1 | text with a single, non-generic family (no fallback) |
+  | `min-font-size` | 1 | text with a `font-size` below 8px |
   | `aspect-ratio` | 2 | viewBox long/short ratio above 2.5 |
   | `node-overlap` | 2 | bounding-box overlap of unrelated nodes |
   | `edge-crossings` | 2 | edge–edge crossings in open whitespace |
@@ -77,11 +78,11 @@ cargo test             # run the suite (unit + binary integration tests)
 cargo run -- --help    # see the subcommands
 cargo run -- --version
 
-# the diagram gate (10 checks, Layers 0–2)
+# the diagram gate (11 checks, Layers 0–2)
 cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
 ```
 
-`check` runs the ten checks in the table above. `optimize`, `ascii`, and `freshness`
+`check` runs the eleven checks in the table above. `optimize`, `ascii`, and `freshness`
 are stubbed (exit 2) pending later milestones.
 
 ## License
