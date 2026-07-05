@@ -37,7 +37,9 @@ One standalone binary (zero runtime dependencies) with these subcommands:
   embedded metrics font so text geometry is deterministic across platforms.
 
 - **`optimize`** — conservative SVGO-style pass _(not yet implemented; exit 2)_.
-- **`ascii`** — deterministic grid render + width-aware alignment _(not yet implemented; exit 2)_.
+- **`ascii`** — deterministic grid render: labels on stdin (one per line) → aligned
+  box-and-arrow pipeline on stdout. _(pipeline shape shipped; tree/table/byte-layout,
+  `--unicode` box-drawing, and wide/CJK width-awareness are follow-ons.)_
 - **`freshness`** — re-render → optimize → byte-diff _(not yet implemented; exit 2)_.
 
 It **reimplements** these checks in one binary rather than gluing svgo / svglint /
@@ -50,7 +52,8 @@ xmllint / contrast tools together — so consumers get a single dependency-free 
   geometry; container-fit is deferred pending trusted per-node font metrics.
 - **source+SVG pair naming + freshness** — a repo/filesystem concern, distinct from the
   single-SVG checks.
-- **`optimize` / `ascii` / `freshness`** subcommand bodies.
+- **`optimize` / `freshness`** subcommand bodies, and the remaining `ascii` shapes
+  (tree / table / byte-layout).
 
 ## Relationship to metapowers
 
@@ -80,10 +83,14 @@ cargo run -- --version
 
 # the diagram gate (11 checks, Layers 0–2)
 cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
+
+# render an aligned ASCII pipeline (labels on stdin, one per line)
+printf 'Source\nFilter\nSink\n' | cargo run -- ascii
 ```
 
-`check` runs the eleven checks in the table above. `optimize`, `ascii`, and `freshness`
-are stubbed (exit 2) pending later milestones.
+`check` runs the eleven checks in the table above. `ascii` renders a box-and-arrow
+pipeline from stdin. `optimize` and `freshness` are stubbed (exit 2) pending later
+milestones.
 
 ## License
 
