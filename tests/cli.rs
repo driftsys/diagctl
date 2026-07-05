@@ -70,11 +70,18 @@ fn stub_optimize_exits_2() {
 }
 
 #[test]
-fn stub_ascii_exits_2() {
+fn ascii_pipeline_renders_from_stdin() {
     diagctl()
-        .args(["ascii", "tests/fixtures/in-band.svg"])
+        .arg("ascii")
+        .write_stdin("Source\nFilter\nSink\n")
         .assert()
-        .code(2);
+        .code(0)
+        .stdout(contains("| Source | ---> | Filter | ---> |  Sink  |"));
+}
+
+#[test]
+fn ascii_empty_stdin_exits_2() {
+    diagctl().arg("ascii").write_stdin("").assert().code(2);
 }
 
 #[test]
