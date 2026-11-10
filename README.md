@@ -76,15 +76,13 @@ bezier/segment math (no heavy geometry dep), and a static binary is ~2–8 MB vs
 
 ## Build, test, run
 
-Requires a Rust toolchain (1.95+).
+Requires a Rust toolchain; `rust-toolchain.toml` pins the version. Gates are
+`just` recipes, and CI runs nothing else.
 
 ```bash
-cargo build            # debug build
-cargo test             # run the suite (unit + binary integration tests)
-cargo run -- --help    # see the subcommands
-cargo run -- --version
-
-# the diagram gate (11 checks, Layers 0–2)
+just                   # list recipes
+just build             # full local gate (fmt, compile, test, clippy, shellcheck)
+just verify            # commit-message lint + full gate, before opening a PR
 cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
 ```
 
@@ -94,3 +92,9 @@ cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
 ## License
 
 MIT © driftsys — see [LICENSE](LICENSE).
+
+<!-- git-std:bootstrap -->
+
+## Post-clone setup
+
+Run `./bootstrap` after `git clone` or `git worktree add`.
