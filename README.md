@@ -57,6 +57,35 @@ gate.
   from the single-SVG checks.
 - **`optimize` / `ascii` / `freshness`** subcommand bodies.
 
+## Install
+
+From the latest GitHub release (macOS, Linux; checksum-verified):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/driftsys/diagctl/main/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/driftsys/diagctl/main/install.ps1 | iex
+```
+
+`DIAGCTL_INSTALL_DIR` (default `~/.local/bin`) and `DIAGCTL_VERSION` (default
+latest) override the defaults.
+
+Manual download:
+
+```sh
+gh release download -R driftsys/diagctl -p 'diagctl-<target>*'
+```
+
+From source:
+
+```sh
+cargo install diagctl
+```
+
 ## Relationship to metapowers
 
 The Phase-1 tech-diagramming skills do this gate by hand (skill self-check +
