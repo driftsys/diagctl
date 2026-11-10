@@ -5,6 +5,11 @@ edition = "2021"
 description = "Hermetic CLI that automates the tech-diagramming quality gate"
 license = "MIT"
 repository = "https://github.com/driftsys/diagctl"
+readme = "README.md"
+keywords = ["svg", "diagram", "lint", "cli", "documentation"]
+categories = ["command-line-utilities", "development-tools"]
+# assets/ stays: src/svg.rs embeds the font via include_bytes!.
+exclude = ["tests/fixtures/", ".github/"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

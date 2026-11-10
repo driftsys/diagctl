@@ -1,5 +1,7 @@
 # diagctl
 
+[![crates.io](https://img.shields.io/crates/v/diagctl.svg)](https://crates.io/crates/diagctl)
+
 A single, hermetic, cross-platform CLI that automates the **tech-diagramming**
 quality gate — the Phase-2 tooling for the
 [metapowers](https://github.com/driftsys/metapowers) diagramming skill family.
