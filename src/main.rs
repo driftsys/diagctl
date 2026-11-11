@@ -2,6 +2,7 @@ mod checks;
 mod cli;
 mod color;
 mod commands;
+mod contract;
 mod geom;
 mod svg;
 

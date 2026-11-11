@@ -15,6 +15,15 @@ fn version_prints_crate_version() {
 }
 
 #[test]
+fn version_reports_display_contract_version() {
+    diagctl()
+        .arg("--version")
+        .assert()
+        .success()
+        .stdout(contains("display contract 1"));
+}
+
+#[test]
 fn help_lists_all_subcommands() {
     diagctl()
         .arg("--help")

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(
     name = "diagctl",
-    version,
+    version = crate::contract::VERSION_LINE,
     about = "Automates the tech-diagramming quality gate"
 )]
 pub struct Cli {
