@@ -20,7 +20,7 @@ fn version_reports_display_contract_version() {
         .arg("--version")
         .assert()
         .success()
-        .stdout(contains("display contract 1"));
+        .stdout(contains("(display contract 1)\n"));
 }
 
 #[test]

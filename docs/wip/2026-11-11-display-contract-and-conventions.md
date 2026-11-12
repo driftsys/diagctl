@@ -20,8 +20,10 @@ Date: 2026-11-11. Source: cross-tool review of pixctl, tblctl and diagctl.
    `--json` (an array with one object per input, lowercase enum values), and
    `check` accepting multiple files.
 4. **Docs layout.** Working memory lives in tracked `docs/wip/`. Remove the
-   `/wip/superpowers/` ignore entry and move the local `wip/superpowers/` files
-   into `docs/wip/`. Garden `docs/wip/` before each PR to `main`.
+   `/wip/superpowers/` ignore entry. Move the local `wip/superpowers/` notes for
+   shipped work to `docs/archive/`, and the notes for open work (the ascii
+   design, PR #13) to `docs/wip/`. Garden `docs/wip/` before each PR to `main`,
+   or record the remaining files as accepted debt in the PR description.
 
 ## Alternatives considered
 
