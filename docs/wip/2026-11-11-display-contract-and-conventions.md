@@ -7,7 +7,11 @@ Date: 2026-11-11. Source: cross-tool review of pixctl, tblctl and diagctl.
 1. **Display contract (#22).** Add `src/contract.rs` with constants copied by
    hand from pixctl's `src/contract.rs` (column width 800 px, minimum displayed
    font 11 px, opaque white background), plus a `CONTRACT_VERSION` that is shown
-   in `--version`. The existing `MIN_FONT_SIZE = 8.0` stays the `html` floor.
+   in `--version`. Decided 2026-11-13: the whole SVG must fit the 800 px column.
+   Diagrams carry no padding or frame; pixctl's 16 px padding and 1 px frame
+   (766 px content) apply only to raster images. Both tools agree that the
+   displayed image is at most 800 px wide. The existing `MIN_FONT_SIZE = 8.0`
+   stays the `html` floor.
 2. **Order of work for `--target` (#14, #19–#21).**
    1. Contract PR (decision 1).
    2. Step 0 evidence recorded on #14: an `<img>` of a width-less SVG fills the
