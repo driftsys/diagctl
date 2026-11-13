@@ -7,7 +7,7 @@
 #
 # Environment variables:
 #   DIAGCTL_INSTALL_DIR  Installation directory (default: $HOME/.local/bin)
-#   DIAGCTL_VERSION      Release tag to install, e.g. v0.0.1 (default: latest)
+#   DIAGCTL_VERSION      Release tag to install, e.g. v0.1.0 (default: latest)
 
 # `local` (SC3043) is not in POSIX, but every real /bin/sh — dash, busybox
 # ash — supports it.

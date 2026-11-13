@@ -112,7 +112,7 @@ Requires a Rust toolchain; `rust-toolchain.toml` pins the version. Gates are
 
 ```bash
 just                   # list recipes
-just build             # full local gate (fmt, compile, test, clippy, shellcheck)
+just build             # full local gate (toolchain, prim, fmt, compile, test, clippy, shellcheck, install test)
 just verify            # commit-message lint + full gate, before opening a PR
 cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
 ```
