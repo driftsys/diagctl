@@ -83,7 +83,7 @@ fn ascii_subcommand_is_absent() {
         .args(["ascii", "tests/fixtures/in-band.svg"])
         .assert()
         .code(2)
-        .stderr(contains("unrecognized subcommand"));
+        .stderr(contains("unrecognized subcommand 'ascii'"));
 }
 
 #[test]
