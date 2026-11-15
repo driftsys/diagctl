@@ -7,8 +7,8 @@ quality gate — the Phase-2 tooling for the
 [metapowers](https://github.com/driftsys/metapowers) diagramming skill family.
 
 > **Status:** `check` runs an **11-check** deterministic gate across Layers 0–2
-> (no vision, near-zero cost). `optimize`/`ascii`/`freshness` are stubbed. Full
-> design, scope, and acceptance criteria live in
+> (no vision, near-zero cost). `optimize`/`freshness` are stubbed. Full design,
+> scope, and acceptance criteria live in
 > **[metapowers#14](https://github.com/driftsys/metapowers/issues/14)**;
 > remaining checks are tracked in
 > **[#2](https://github.com/driftsys/diagctl/issues/2)**.
@@ -40,8 +40,6 @@ One standalone binary (zero runtime dependencies) with these subcommands:
   embedded metrics font so text geometry is deterministic across platforms.
 
 - **`optimize`** — conservative SVGO-style pass _(not yet implemented; exit 2)_.
-- **`ascii`** — deterministic grid render + width-aware alignment _(not yet
-  implemented; exit 2)_.
 - **`freshness`** — re-render → optimize → byte-diff _(not yet implemented;
   exit 2)_.
 
@@ -57,7 +55,7 @@ gate.
   font metrics.
 - **source+SVG pair naming + freshness** — a repo/filesystem concern, distinct
   from the single-SVG checks.
-- **`optimize` / `ascii` / `freshness`** subcommand bodies.
+- **`optimize` / `freshness`** subcommand bodies.
 
 ## Install
 
@@ -117,8 +115,8 @@ just verify            # commit-message lint + full gate, before opening a PR
 cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
 ```
 
-`check` runs the eleven checks in the table above. `optimize`, `ascii`, and
-`freshness` are stubbed (exit 2) pending later milestones.
+`check` runs the eleven checks in the table above. `optimize` and `freshness`
+are stubbed (exit 2) pending later milestones.
 
 ## License
 

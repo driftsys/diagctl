@@ -31,7 +31,6 @@ fn help_lists_all_subcommands() {
         .success()
         .stdout(contains("check"))
         .stdout(contains("optimize"))
-        .stdout(contains("ascii"))
         .stdout(contains("freshness"));
 }
 
@@ -79,11 +78,12 @@ fn stub_optimize_exits_2() {
 }
 
 #[test]
-fn stub_ascii_exits_2() {
+fn ascii_subcommand_is_absent() {
     diagctl()
         .args(["ascii", "tests/fixtures/in-band.svg"])
         .assert()
-        .code(2);
+        .code(2)
+        .stderr(contains("unrecognized subcommand 'ascii'"));
 }
 
 #[test]
