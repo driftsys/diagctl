@@ -14,7 +14,6 @@ fn main() {
     let result = match cli.command {
         Command::Check { file } => commands::check::run(&file),
         Command::Optimize { file } => commands::optimize::run(&file),
-        Command::Ascii { file } => commands::ascii::run(&file),
         Command::Freshness { file } => commands::freshness::run(&file),
     };
     match result {

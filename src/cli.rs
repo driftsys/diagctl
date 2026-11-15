@@ -18,8 +18,6 @@ pub enum Command {
     Check { file: PathBuf },
     /// (not yet implemented) Conservative SVGO-style optimization
     Optimize { file: PathBuf },
-    /// (not yet implemented) ASCII grid render + width-aware alignment
-    Ascii { file: PathBuf },
     /// (not yet implemented) Re-render and byte-diff freshness check
     Freshness { file: PathBuf },
 }
