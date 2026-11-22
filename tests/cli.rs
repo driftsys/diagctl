@@ -42,6 +42,52 @@ fn check_in_band_exits_0() {
         .code(0);
 }
 
+fn check_stdout(args: &[&str], code: i32) -> Vec<u8> {
+    diagctl()
+        .args(args)
+        .assert()
+        .code(code)
+        .get_output()
+        .stdout
+        .clone()
+}
+
+#[test]
+fn check_targets_match_default_output() {
+    // Both targets run the same checks until #19, #20 and #21 land.
+    for (fixture, code) in [
+        ("tests/fixtures/in-band.svg", 0),
+        ("tests/fixtures/strip.svg", 1),
+    ] {
+        let default = check_stdout(&["check", fixture], code);
+        for target in ["html", "markdown"] {
+            assert_eq!(
+                check_stdout(&["check", "--target", target, fixture], code),
+                default,
+                "--target {target} on {fixture}"
+            );
+        }
+    }
+}
+
+#[test]
+fn check_default_target_is_html() {
+    diagctl()
+        .args(["check", "--help"])
+        .assert()
+        .success()
+        .stdout(contains("[default: html]"));
+}
+
+#[test]
+fn check_unknown_target_exits_2() {
+    diagctl()
+        .args(["check", "--target", "pdf", "tests/fixtures/in-band.svg"])
+        .assert()
+        .code(2)
+        .stderr(contains("invalid value 'pdf'"));
+}
+
 #[test]
 fn check_strip_exits_1_naming_aspect() {
     diagctl()
