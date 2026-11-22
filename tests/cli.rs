@@ -43,6 +43,44 @@ fn check_in_band_exits_0() {
 }
 
 #[test]
+fn check_target_markdown_matches_html_output() {
+    let html = diagctl()
+        .args(["check", "tests/fixtures/in-band.svg"])
+        .assert()
+        .code(0)
+        .get_output()
+        .stdout
+        .clone();
+    diagctl()
+        .args([
+            "check",
+            "--target",
+            "markdown",
+            "tests/fixtures/in-band.svg",
+        ])
+        .assert()
+        .code(0)
+        .stdout(predicates::ord::eq(html));
+}
+
+#[test]
+fn check_target_html_is_accepted() {
+    diagctl()
+        .args(["check", "--target", "html", "tests/fixtures/in-band.svg"])
+        .assert()
+        .code(0);
+}
+
+#[test]
+fn check_unknown_target_exits_2() {
+    diagctl()
+        .args(["check", "--target", "pdf", "tests/fixtures/in-band.svg"])
+        .assert()
+        .code(2)
+        .stderr(contains("invalid value 'pdf'"));
+}
+
+#[test]
 fn check_strip_exits_1_naming_aspect() {
     diagctl()
         .args(["check", "tests/fixtures/strip.svg"])

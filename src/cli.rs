@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -15,9 +15,23 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Command {
     /// Run the diagram quality gate on an SVG file
-    Check { file: PathBuf },
+    Check {
+        /// Where the SVG is displayed: inlined in HTML, or through a Markdown image
+        #[arg(long, value_enum, default_value_t = Target::Html)]
+        target: Target,
+        file: PathBuf,
+    },
     /// (not yet implemented) Conservative SVGO-style optimization
     Optimize { file: PathBuf },
     /// (not yet implemented) Re-render and byte-diff freshness check
     Freshness { file: PathBuf },
+}
+
+/// Display target for `check`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum Target {
+    /// SVG inlined in an HTML page (current checks)
+    Html,
+    /// SVG shown through a Markdown image (GitHub, GitLab, mdbook)
+    Markdown,
 }

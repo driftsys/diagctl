@@ -19,6 +19,8 @@ One standalone binary (zero runtime dependencies) with these subcommands:
 
 - **`check`** — the diagram gate. Each check prints `PASS`/`FAIL` with a layer
   tag; exit `0` clean · `1` ≥1 check failed · `2` operational error.
+  `--target html|markdown` names where the SVG is displayed (default `html`).
+  Both targets run the same checks today.
 
   | Check                 | Layer | What it flags                                        |
   | --------------------- | ----- | ---------------------------------------------------- |
