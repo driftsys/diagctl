@@ -92,7 +92,36 @@ fn check_markdown_passes_sized_svg() {
             "tests/fixtures/md-valid.svg",
         ])
         .assert()
+        .code(0)
         .stdout(contains("PASS  [L0] dimensions"));
+}
+
+/// Check output lines without the size-check line.
+fn lines_without_size_check(out: &[u8]) -> Vec<String> {
+    String::from_utf8_lossy(out)
+        .lines()
+        .filter(|l| !l.contains("dimensions"))
+        .map(str::to_string)
+        .collect()
+}
+
+#[test]
+fn check_targets_differ_only_in_size_check() {
+    for fixture in ["tests/fixtures/md-valid.svg", "tests/fixtures/strip.svg"] {
+        let html = diagctl().args(["check", fixture]).output().unwrap().stdout;
+        let md = diagctl()
+            .args(["check", "--target", "markdown", fixture])
+            .output()
+            .unwrap()
+            .stdout;
+        let html_rest = lines_without_size_check(&html);
+        // Exactly one size-check line is removed from each output.
+        assert_eq!(
+            html_rest.len() + 1,
+            String::from_utf8_lossy(&html).lines().count()
+        );
+        assert_eq!(lines_without_size_check(&md), html_rest, "{fixture}");
+    }
 }
 
 #[test]

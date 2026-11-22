@@ -1,6 +1,6 @@
 //! `dimensions` (`--target markdown`): the root `<svg>` has a `viewBox`, a
-//! `width` and a `height` in px with the same aspect ratio as the `viewBox`,
-//! and a `width` no larger than the display column.
+//! `width` and a `height` in px whose aspect ratio is within 1 % of the
+//! `viewBox` aspect ratio, and a `width` no larger than the display column.
 //!
 //! A Markdown renderer shows the SVG through `<img>`. Without `width` and
 //! `height` the image fills the column, so its displayed size is unknown
@@ -65,7 +65,7 @@ fn parse_viewbox(v: &str) -> Option<(f32, f32)> {
         .collect::<Result<_, _>>()
         .ok()?;
     match n[..] {
-        [_, _, w, h] if w > 0.0 && h > 0.0 => Some((w, h)),
+        [_, _, w, h] if w.is_finite() && h.is_finite() && w > 0.0 && h > 0.0 => Some((w, h)),
         _ => None,
     }
 }
@@ -73,7 +73,7 @@ fn parse_viewbox(v: &str) -> Option<(f32, f32)> {
 fn parse_px(v: &str) -> Option<f32> {
     let v = v.trim();
     let n: f32 = v.strip_suffix("px").unwrap_or(v).trim().parse().ok()?;
-    (n > 0.0).then_some(n)
+    (n.is_finite() && n > 0.0).then_some(n)
 }
 
 #[cfg(test)]
@@ -100,7 +100,9 @@ mod tests {
 
     #[test]
     fn width_only_fails() {
-        assert_eq!(run("md-width-only").status, Status::Fail);
+        let r = run("md-width-only");
+        assert_eq!(r.status, Status::Fail);
+        assert!(r.detail.contains("width and height"), "{}", r.detail);
     }
 
     #[test]
@@ -130,7 +132,9 @@ mod tests {
 
     #[test]
     fn no_viewbox_fails() {
-        assert_eq!(run("no-viewbox").status, Status::Fail);
+        let r = run("no-viewbox");
+        assert_eq!(r.status, Status::Fail);
+        assert!(r.detail.contains("no valid viewBox"), "{}", r.detail);
     }
 
     #[test]
@@ -138,6 +142,121 @@ mod tests {
         assert_eq!(parse_px("400px"), Some(400.0));
         assert_eq!(parse_px("2em"), None);
         assert_eq!(parse_px("0"), None);
+    }
+
+    /// Runs `evaluate` on a root `<svg>` with the given attributes.
+    fn eval(attrs: &str) -> (Status, String) {
+        let src = format!(r#"<svg xmlns="http://www.w3.org/2000/svg" {attrs}/>"#);
+        let doc = roxmltree::Document::parse(&src).unwrap();
+        evaluate(doc.root_element())
+    }
+
+    #[test]
+    fn rule_table() {
+        // (attributes, expected status, text the detail must contain)
+        let cases = [
+            // Displayed width is limited, not the viewBox size.
+            (
+                r#"viewBox="0 0 1600 400" width="800" height="200""#,
+                Status::Pass,
+                "fits",
+            ),
+            (
+                r#"viewBox="0 0 400 200" width="1600" height="800""#,
+                Status::Fail,
+                "wider than",
+            ),
+            // Height is not limited.
+            (
+                r#"viewBox="0 0 400 1200" width="400" height="1200""#,
+                Status::Pass,
+                "fits",
+            ),
+            // Aspect mismatch in both directions.
+            (
+                r#"viewBox="0 0 400 200" width="400" height="300""#,
+                Status::Fail,
+                "aspect",
+            ),
+            (
+                r#"viewBox="0 0 400 200" width="400" height="100""#,
+                Status::Fail,
+                "aspect",
+            ),
+            // 1 % tolerance boundary: 400/201 is 0.5 % off, 400/204 is 2 % off.
+            (
+                r#"viewBox="0 0 400 200" width="400" height="201""#,
+                Status::Pass,
+                "fits",
+            ),
+            (
+                r#"viewBox="0 0 400 200" width="400" height="204""#,
+                Status::Fail,
+                "aspect",
+            ),
+            // Presence and units.
+            (
+                r#"viewBox="0 0 400 200" width="400""#,
+                Status::Fail,
+                "width and height",
+            ),
+            (
+                r#"viewBox="0 0 400 200" height="200""#,
+                Status::Fail,
+                "width and height",
+            ),
+            (
+                r#"viewBox="0 0 400 200" width="100%" height="200""#,
+                Status::Fail,
+                "px numbers",
+            ),
+            (
+                r#"viewBox="0 0 400 200" width="400" height="50%""#,
+                Status::Fail,
+                "px numbers",
+            ),
+            (
+                r#"viewBox="0 0 400 200" width="-400" height="-200""#,
+                Status::Fail,
+                "px numbers",
+            ),
+            (
+                r#"viewBox="0 0 400 200" width="400px" height="200px""#,
+                Status::Pass,
+                "fits",
+            ),
+            // viewBox validity.
+            (
+                r#"width="400" height="200""#,
+                Status::Fail,
+                "no valid viewBox",
+            ),
+            (
+                r#"viewBox="0 0 0 200" width="400" height="200""#,
+                Status::Fail,
+                "no valid viewBox",
+            ),
+            (
+                r#"viewBox="0 0 inf 200" width="400" height="200""#,
+                Status::Fail,
+                "no valid viewBox",
+            ),
+            (
+                r#"viewBox="0 0 400" width="400" height="200""#,
+                Status::Fail,
+                "no valid viewBox",
+            ),
+            (
+                r#"viewBox="0 0 400 200 9" width="400" height="200""#,
+                Status::Fail,
+                "no valid viewBox",
+            ),
+        ];
+        for (attrs, status, text) in cases {
+            let (got, detail) = eval(attrs);
+            assert_eq!(got, status, "{attrs}: {detail}");
+            assert!(detail.contains(text), "{attrs}: {detail}");
+        }
     }
 
     #[test]
