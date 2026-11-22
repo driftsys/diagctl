@@ -15,7 +15,6 @@ macro_rules! contract_version {
 pub const CONTRACT_VERSION: &str = contract_version!();
 
 /// Width of the Markdown content column, in CSS px.
-#[allow(dead_code)] // Read by the markdown checks (#19, #20, #21).
 pub const COLUMN_WIDTH_PX: f32 = 800.0;
 
 /// Minimum font size after the image is scaled into the column, in CSS px.

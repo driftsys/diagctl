@@ -1,4 +1,5 @@
 use assert_cmd::Command;
+use predicates::prelude::*;
 use predicates::str::contains;
 
 fn diagctl() -> Command {
@@ -53,21 +54,59 @@ fn check_stdout(args: &[&str], code: i32) -> Vec<u8> {
 }
 
 #[test]
-fn check_targets_match_default_output() {
-    // Both targets run the same checks until #19, #20 and #21 land.
+fn check_target_html_matches_default_output() {
     for (fixture, code) in [
         ("tests/fixtures/in-band.svg", 0),
         ("tests/fixtures/strip.svg", 1),
     ] {
-        let default = check_stdout(&["check", fixture], code);
-        for target in ["html", "markdown"] {
-            assert_eq!(
-                check_stdout(&["check", "--target", target, fixture], code),
-                default,
-                "--target {target} on {fixture}"
-            );
-        }
+        assert_eq!(
+            check_stdout(&["check", "--target", "html", fixture], code),
+            check_stdout(&["check", fixture], code),
+            "--target html on {fixture}"
+        );
     }
+}
+
+#[test]
+fn check_markdown_fails_svg_without_dimensions() {
+    diagctl()
+        .args([
+            "check",
+            "--target",
+            "markdown",
+            "tests/fixtures/in-band.svg",
+        ])
+        .assert()
+        .code(1)
+        .stdout(contains("FAIL  [L0] dimensions"))
+        .stdout(contains("no-fixed-dimensions").not());
+}
+
+#[test]
+fn check_markdown_passes_sized_svg() {
+    diagctl()
+        .args([
+            "check",
+            "--target",
+            "markdown",
+            "tests/fixtures/md-valid.svg",
+        ])
+        .assert()
+        .stdout(contains("PASS  [L0] dimensions"));
+}
+
+#[test]
+fn check_markdown_fails_svg_wider_than_column() {
+    diagctl()
+        .args([
+            "check",
+            "--target",
+            "markdown",
+            "tests/fixtures/md-wide.svg",
+        ])
+        .assert()
+        .code(1)
+        .stdout(contains("FAIL  [L0] dimensions"));
 }
 
 #[test]

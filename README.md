@@ -20,21 +20,23 @@ One standalone binary (zero runtime dependencies) with these subcommands:
 - **`check`** — the diagram gate. Each check prints `PASS`/`FAIL` with a layer
   tag; exit `0` clean · `1` ≥1 check failed · `2` operational error.
   `--target html|markdown` names where the SVG is displayed (default `html`).
-  Both targets run the same checks today.
+  The targets differ in one check: `html` runs `no-fixed-dimensions`, and
+  `markdown` runs `dimensions` in its place.
 
-  | Check                 | Layer | What it flags                                        |
-  | --------------------- | ----- | ---------------------------------------------------- |
-  | `viewbox-present`     | 0     | root `<svg>` missing a `viewBox`                     |
-  | `no-fixed-dimensions` | 0     | root `<svg>` with fixed `width`/`height`             |
-  | `contrast`            | 1     | stroke vs background below WCAG 3:1                  |
-  | `min-stroke-width`    | 1     | hairline strokes below 0.5px                         |
-  | `font-family`         | 1     | text with a single, non-generic family (no fallback) |
-  | `min-font-size`       | 1     | text with a `font-size` below 8px                    |
-  | `aspect-ratio`        | 2     | viewBox long/short ratio above 2.5                   |
-  | `node-overlap`        | 2     | bounding-box overlap of unrelated nodes              |
-  | `edge-crossings`      | 2     | edge–edge crossings in open whitespace               |
-  | `edge-node-overlap`   | 2     | an edge routed through an unrelated node             |
-  | `label-overflow`      | 2     | label text clipped at the viewBox edge               |
+  | Check                 | Layer | What it flags                                                                                    |
+  | --------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+  | `viewbox-present`     | 0     | root `<svg>` missing a `viewBox`                                                                 |
+  | `no-fixed-dimensions` | 0     | root `<svg>` with fixed `width`/`height`                                                         |
+  | `dimensions`          | 0     | `markdown` only: missing px `width`/`height`, aspect differing from `viewBox`, or width > 800 px |
+  | `contrast`            | 1     | stroke vs background below WCAG 3:1                                                              |
+  | `min-stroke-width`    | 1     | hairline strokes below 0.5px                                                                     |
+  | `font-family`         | 1     | text with a single, non-generic family (no fallback)                                             |
+  | `min-font-size`       | 1     | text with a `font-size` below 8px                                                                |
+  | `aspect-ratio`        | 2     | viewBox long/short ratio above 2.5                                                               |
+  | `node-overlap`        | 2     | bounding-box overlap of unrelated nodes                                                          |
+  | `edge-crossings`      | 2     | edge–edge crossings in open whitespace                                                           |
+  | `edge-node-overlap`   | 2     | an edge routed through an unrelated node                                                         |
+  | `label-overflow`      | 2     | label text clipped at the viewBox edge                                                           |
 
   Layer-2 geometry is computed from the rendered SVG via `usvg` (resolved
   geometry + transforms) with hand-rolled bezier-flattening / segment math — no
@@ -117,8 +119,8 @@ just verify            # commit-message lint + full gate, before opening a PR
 cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
 ```
 
-`check` runs the eleven checks in the table above. `optimize` and `freshness`
-are stubbed (exit 2) pending later milestones.
+`check` runs eleven checks from the table above for each target. `optimize` and
+`freshness` are stubbed (exit 2) pending later milestones.
 
 ## License
 
