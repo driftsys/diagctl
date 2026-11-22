@@ -30,7 +30,7 @@ pub enum Command {
 /// Display target for `check`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum Target {
-    /// SVG inlined in an HTML page (current checks)
+    /// SVG inlined in an HTML page
     Html,
     /// SVG shown through a Markdown image (GitHub, GitLab, mdbook)
     Markdown,

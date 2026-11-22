@@ -42,33 +42,41 @@ fn check_in_band_exits_0() {
         .code(0);
 }
 
-#[test]
-fn check_target_markdown_matches_html_output() {
-    let html = diagctl()
-        .args(["check", "tests/fixtures/in-band.svg"])
+fn check_stdout(args: &[&str], code: i32) -> Vec<u8> {
+    diagctl()
+        .args(args)
         .assert()
-        .code(0)
+        .code(code)
         .get_output()
         .stdout
-        .clone();
-    diagctl()
-        .args([
-            "check",
-            "--target",
-            "markdown",
-            "tests/fixtures/in-band.svg",
-        ])
-        .assert()
-        .code(0)
-        .stdout(predicates::ord::eq(html));
+        .clone()
 }
 
 #[test]
-fn check_target_html_is_accepted() {
+fn check_targets_match_default_output() {
+    // Both targets run the same checks until #19, #20 and #21 land.
+    for (fixture, code) in [
+        ("tests/fixtures/in-band.svg", 0),
+        ("tests/fixtures/strip.svg", 1),
+    ] {
+        let default = check_stdout(&["check", fixture], code);
+        for target in ["html", "markdown"] {
+            assert_eq!(
+                check_stdout(&["check", "--target", target, fixture], code),
+                default,
+                "--target {target} on {fixture}"
+            );
+        }
+    }
+}
+
+#[test]
+fn check_default_target_is_html() {
     diagctl()
-        .args(["check", "--target", "html", "tests/fixtures/in-band.svg"])
+        .args(["check", "--help"])
         .assert()
-        .code(0);
+        .success()
+        .stdout(contains("[default: html]"));
 }
 
 #[test]
