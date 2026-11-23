@@ -1,7 +1,9 @@
+use crate::cli::Target;
 use crate::svg::Svg;
 
 pub mod aspect;
 pub mod contrast;
+pub mod dimensions;
 pub mod edge_crossings;
 pub mod edge_node_overlap;
 pub mod font_family;
@@ -26,10 +28,16 @@ pub struct CheckResult {
     pub detail: String,
 }
 
-pub fn run_all(svg: &Svg) -> Vec<CheckResult> {
+/// Runs every check for `target`. The targets differ only in the size
+/// rule: `html` forbids a fixed width/height, `markdown` requires one.
+pub fn run_all(svg: &Svg, target: Target) -> Vec<CheckResult> {
+    let size_check = match target {
+        Target::Html => no_fixed_dimensions::check,
+        Target::Markdown => dimensions::check,
+    };
     vec![
         viewbox::check(svg),
-        no_fixed_dimensions::check(svg),
+        size_check(svg),
         aspect::check(svg),
         node_overlap::check(svg),
         edge_crossings::check(svg),

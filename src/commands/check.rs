@@ -3,11 +3,9 @@ use crate::cli::Target;
 use crate::svg;
 use std::path::Path;
 
-// Both targets run the same checks for now. The markdown checks come with
-// #19, #20 and #21.
-pub fn run(file: &Path, _target: Target) -> anyhow::Result<i32> {
+pub fn run(file: &Path, target: Target) -> anyhow::Result<i32> {
     let svg = svg::load(file)?;
-    let results = checks::run_all(&svg);
+    let results = checks::run_all(&svg, target);
     let mut any_failed = false;
     for r in &results {
         let tag = match r.status {
