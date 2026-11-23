@@ -57,7 +57,7 @@ fn evaluate(root: roxmltree::Node) -> (Status, String) {
     )
 }
 
-fn parse_viewbox(v: &str) -> Option<(f32, f32)> {
+pub(crate) fn parse_viewbox(v: &str) -> Option<(f32, f32)> {
     let n: Vec<f32> = v
         .split(|c: char| c.is_whitespace() || c == ',')
         .filter(|s| !s.is_empty())
@@ -70,7 +70,7 @@ fn parse_viewbox(v: &str) -> Option<(f32, f32)> {
     }
 }
 
-fn parse_px(v: &str) -> Option<f32> {
+pub(crate) fn parse_px(v: &str) -> Option<f32> {
     let v = v.trim();
     let n: f32 = v.strip_suffix("px").unwrap_or(v).trim().parse().ok()?;
     (n.is_finite() && n > 0.0).then_some(n)

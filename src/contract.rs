@@ -11,7 +11,7 @@ macro_rules! contract_version {
 }
 
 /// Contract version. Part of the `diagctl --version` output.
-#[allow(dead_code)] // Read by the markdown checks (#21).
+#[allow(dead_code)] // Only `VERSION_LINE` (through the macro) and tests use it.
 pub const CONTRACT_VERSION: &str = contract_version!();
 
 /// Width of the Markdown content column, in CSS px.
