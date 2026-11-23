@@ -28,12 +28,16 @@ pub struct CheckResult {
     pub detail: String,
 }
 
-/// Runs every check for `target`. The targets differ only in the size
-/// rule: `html` forbids a fixed width/height, `markdown` requires one.
+type CheckFn = fn(&Svg) -> CheckResult;
+
+/// Runs every check for `target`. The targets differ in two checks:
+/// `html` forbids a fixed width/height and floors the authored font at
+/// 8 px; `markdown` requires a width/height and floors the displayed font
+/// at 11 px.
 pub fn run_all(svg: &Svg, target: Target) -> Vec<CheckResult> {
-    let size_check = match target {
-        Target::Html => no_fixed_dimensions::check,
-        Target::Markdown => dimensions::check,
+    let (size_check, font_check): (CheckFn, CheckFn) = match target {
+        Target::Html => (no_fixed_dimensions::check, min_font_size::check),
+        Target::Markdown => (dimensions::check, min_font_size::check_markdown),
     };
     vec![
         viewbox::check(svg),
@@ -46,6 +50,6 @@ pub fn run_all(svg: &Svg, target: Target) -> Vec<CheckResult> {
         contrast::check(svg),
         min_stroke_width::check(svg),
         font_family::check(svg),
-        min_font_size::check(svg),
+        font_check(svg),
     ]
 }

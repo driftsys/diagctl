@@ -20,8 +20,9 @@ One standalone binary (zero runtime dependencies) with these subcommands:
 - **`check`** — the diagram gate. Each check prints `PASS`/`FAIL` with a layer
   tag; exit `0` clean · `1` ≥1 check failed · `2` operational error.
   `--target html|markdown` names where the SVG is displayed (default `html`).
-  The targets differ in one check: `html` runs `no-fixed-dimensions`, and
-  `markdown` runs `dimensions` in its place.
+  The targets differ in two checks: `html` runs `no-fixed-dimensions`, and
+  `markdown` runs `dimensions` in its place; `min-font-size` uses an 8px
+  authored floor for `html` and an 11px displayed floor for `markdown`.
 
   | Check                 | Layer | What it flags                                                                                                                      |
   | --------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -31,7 +32,7 @@ One standalone binary (zero runtime dependencies) with these subcommands:
   | `contrast`            | 1     | stroke vs background below WCAG 3:1                                                                                                |
   | `min-stroke-width`    | 1     | hairline strokes below 0.5px                                                                                                       |
   | `font-family`         | 1     | text with a single, non-generic family (no fallback)                                                                               |
-  | `min-font-size`       | 1     | text with a `font-size` below 8px                                                                                                  |
+  | `min-font-size`       | 1     | `html`: `font-size` below 8px; `markdown`: below 11px after scaling to the displayed width (at most 800 px)                        |
   | `aspect-ratio`        | 2     | viewBox long/short ratio above 2.5                                                                                                 |
   | `node-overlap`        | 2     | bounding-box overlap of unrelated nodes                                                                                            |
   | `edge-crossings`      | 2     | edge–edge crossings in open whitespace                                                                                             |

@@ -1,7 +1,102 @@
 use crate::checks::{CheckResult, Status};
+use crate::contract::{COLUMN_WIDTH_PX, MIN_DISPLAYED_FONT_PX};
 use crate::svg::Svg;
 
+/// Authored font floor for `--target html`.
 pub const MIN_FONT_SIZE: f32 = 8.0;
+
+/// `--target markdown`: every px-sized text must be at least
+/// `MIN_DISPLAYED_FONT_PX` after the image is scaled for display.
+///
+/// Font sizes are in `viewBox` units. The image is displayed
+/// min(`width`, column) px wide, or the full column when `width` is absent
+/// or not a px number, so the scale is that displayed width divided by the
+/// `viewBox` width. Without a `viewBox`, user units are the `width` units.
+/// Transforms on text are not taken into account.
+pub fn check_markdown(svg: &Svg) -> CheckResult {
+    let (status, detail) = match roxmltree::Document::parse(&svg.raw) {
+        Ok(doc) => evaluate_markdown(&doc),
+        Err(_) => (Status::Pass, "unparseable; skipped".to_string()),
+    };
+    CheckResult {
+        id: "min-font-size",
+        layer: 1,
+        status,
+        detail,
+    }
+}
+
+fn evaluate_markdown(doc: &roxmltree::Document) -> (Status, String) {
+    let scale = display_scale(doc.root_element());
+    let mut failing: Vec<f32> = Vec::new();
+    let mut min_seen = f32::INFINITY;
+    for px in text_sizes(doc) {
+        if px * scale < MIN_DISPLAYED_FONT_PX {
+            failing.push(px);
+        }
+        min_seen = min_seen.min(px);
+    }
+    if !min_seen.is_finite() {
+        return (Status::Pass, "no px-sized text".to_string());
+    }
+    if failing.is_empty() {
+        return (
+            Status::Pass,
+            format!(
+                "smallest {min_seen:.2}px x scale {scale:.3} = {:.2}px displayed",
+                min_seen * scale
+            ),
+        );
+    }
+    failing.sort_by(f32::total_cmp);
+    failing.dedup();
+    let sizes: Vec<String> = failing
+        .iter()
+        .map(|px| format!("{px:.2}px -> {:.2}px", px * scale))
+        .collect();
+    (
+        Status::Fail,
+        format!(
+            "text below {MIN_DISPLAYED_FONT_PX}px displayed at scale {scale:.3}: {}",
+            sizes.join(", ")
+        ),
+    )
+}
+
+/// Ratio of displayed px to user units for the root `<svg>`.
+fn display_scale(root: roxmltree::Node) -> f32 {
+    let width = root
+        .attribute("width")
+        .and_then(parse_px)
+        .filter(|w| w.is_finite() && *w > 0.0);
+    let displayed = width.map_or(COLUMN_WIDTH_PX, |w| w.min(COLUMN_WIDTH_PX));
+    let user_width = root
+        .attribute("viewBox")
+        .and_then(viewbox_width)
+        .or(width)
+        .unwrap_or(COLUMN_WIDTH_PX);
+    displayed / user_width
+}
+
+fn viewbox_width(v: &str) -> Option<f32> {
+    let n: Vec<f32> = v
+        .split(|c: char| c.is_whitespace() || c == ',')
+        .filter(|s| !s.is_empty())
+        .map(str::parse)
+        .collect::<Result<_, _>>()
+        .ok()?;
+    match n[..] {
+        [_, _, w, h] if w.is_finite() && h.is_finite() && w > 0.0 && h > 0.0 => Some(w),
+        _ => None,
+    }
+}
+
+/// Px sizes of every `<text>` and `<tspan>` that has one.
+fn text_sizes<'a>(doc: &'a roxmltree::Document) -> impl Iterator<Item = f32> + 'a {
+    doc.descendants()
+        .filter(|n| n.is_element() && matches!(n.tag_name().name(), "text" | "tspan"))
+        .filter_map(|n| font_size_of(&n).as_deref().and_then(parse_px))
+}
 
 pub fn check(svg: &Svg) -> CheckResult {
     let doc = match roxmltree::Document::parse(&svg.raw) {
@@ -114,6 +209,95 @@ mod tests {
     fn font_ok_passes() {
         let svg = load(Path::new("tests/fixtures/font-ok.svg")).unwrap();
         assert_eq!(check(&svg).status, Status::Pass);
+    }
+
+    fn md(root_attrs: &str, font: &str) -> (Status, String) {
+        let raw = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" {root_attrs}><text font-size="{font}">a</text></svg>"#
+        );
+        evaluate_markdown(&roxmltree::Document::parse(&raw).unwrap())
+    }
+
+    #[test]
+    fn markdown_scale_table() {
+        // (root attributes, font, expected status)
+        let cases = [
+            // viewBox 1600 shown at 800: scale 0.5.
+            (
+                r#"viewBox="0 0 1600 400" width="800" height="200""#,
+                "22",
+                Status::Pass,
+            ),
+            (
+                r#"viewBox="0 0 1600 400" width="800" height="200""#,
+                "21",
+                Status::Fail,
+            ),
+            // No width: fills the 800 px column.
+            (r#"viewBox="0 0 1600 400""#, "22", Status::Pass),
+            (r#"viewBox="0 0 1600 400""#, "21", Status::Fail),
+            // Width wider than the column is capped at 800.
+            (
+                r#"viewBox="0 0 1600 400" width="1600" height="400""#,
+                "21",
+                Status::Fail,
+            ),
+            // Width smaller than the viewBox shrinks text.
+            (
+                r#"viewBox="0 0 400 200" width="200" height="100""#,
+                "21",
+                Status::Fail,
+            ),
+            (
+                r#"viewBox="0 0 400 200" width="200" height="100""#,
+                "22",
+                Status::Pass,
+            ),
+            // Scale 1: the 11 px floor, not the 8 px html floor.
+            (
+                r#"viewBox="0 0 400 200" width="400" height="200""#,
+                "11",
+                Status::Pass,
+            ),
+            (
+                r#"viewBox="0 0 400 200" width="400" height="200""#,
+                "10.9",
+                Status::Fail,
+            ),
+            (
+                r#"viewBox="0 0 400 200" width="400" height="200""#,
+                "9px",
+                Status::Fail,
+            ),
+            // Narrow viewBox, no width: upscaled to the column.
+            (r#"viewBox="0 0 400 200""#, "6", Status::Pass),
+            // No viewBox: user units are width units.
+            (r#"width="400" height="200""#, "10", Status::Fail),
+            (r#"width="1600" height="400""#, "21", Status::Fail),
+            // Non-px font sizes are skipped.
+            (r#"viewBox="0 0 400 200""#, "1em", Status::Pass),
+        ];
+        for (attrs, font, want) in cases {
+            assert_eq!(md(attrs, font).0, want, "{attrs} font {font}");
+        }
+    }
+
+    #[test]
+    fn markdown_failure_reports_authored_scale_and_displayed() {
+        let (status, detail) = md(r#"viewBox="0 0 1600 400" width="800" height="200""#, "14");
+        assert_eq!(status, Status::Fail);
+        assert_eq!(
+            detail,
+            "text below 11px displayed at scale 0.500: 14.00px -> 7.00px"
+        );
+    }
+
+    #[test]
+    fn markdown_no_text_passes() {
+        assert_eq!(
+            md(r#"viewBox="0 0 400 200""#, "x"),
+            (Status::Pass, "no px-sized text".to_string())
+        );
     }
 
     #[test]
