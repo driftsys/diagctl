@@ -96,17 +96,17 @@ fn check_markdown_passes_sized_svg() {
         .stdout(contains("PASS  [L0] dimensions"));
 }
 
-/// Check output lines without the size-check line.
-fn lines_without_size_check(out: &[u8]) -> Vec<String> {
+/// Check output lines without the two target-specific lines (size and font).
+fn lines_without_target_checks(out: &[u8]) -> Vec<String> {
     String::from_utf8_lossy(out)
         .lines()
-        .filter(|l| !l.contains("dimensions"))
+        .filter(|l| !l.contains("dimensions") && !l.contains("min-font-size"))
         .map(str::to_string)
         .collect()
 }
 
 #[test]
-fn check_targets_differ_only_in_size_check() {
+fn check_targets_differ_only_in_size_and_font_checks() {
     for fixture in ["tests/fixtures/md-valid.svg", "tests/fixtures/strip.svg"] {
         let html = diagctl().args(["check", fixture]).output().unwrap().stdout;
         let md = diagctl()
@@ -114,13 +114,13 @@ fn check_targets_differ_only_in_size_check() {
             .output()
             .unwrap()
             .stdout;
-        let html_rest = lines_without_size_check(&html);
-        // Exactly one size-check line is removed from each output.
+        let html_rest = lines_without_target_checks(&html);
+        // Exactly two lines are removed from each output.
         assert_eq!(
-            html_rest.len() + 1,
+            html_rest.len() + 2,
             String::from_utf8_lossy(&html).lines().count()
         );
-        assert_eq!(lines_without_size_check(&md), html_rest, "{fixture}");
+        assert_eq!(lines_without_target_checks(&md), html_rest, "{fixture}");
     }
 }
 
@@ -305,4 +305,29 @@ fn check_tiny_font_exits_1_naming_min_font_size() {
         .assert()
         .code(1)
         .stdout(contains("min-font-size"));
+}
+
+#[test]
+fn check_markdown_fails_text_too_small_when_displayed() {
+    // 14px text in a 1600-wide viewBox shown at 800 px displays at 7px.
+    diagctl()
+        .args([
+            "check",
+            "--target",
+            "markdown",
+            "tests/fixtures/md-small-font.svg",
+        ])
+        .assert()
+        .code(1)
+        .stdout(contains(
+            "FAIL  [L1] min-font-size  text below 11px displayed at scale 0.500: 14.00px -> 7.00px",
+        ));
+}
+
+#[test]
+fn check_html_passes_same_font_at_authored_size() {
+    diagctl()
+        .args(["check", "tests/fixtures/md-small-font.svg"])
+        .assert()
+        .stdout(contains("PASS  [L1] min-font-size"));
 }

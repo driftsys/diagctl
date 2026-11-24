@@ -11,18 +11,17 @@ macro_rules! contract_version {
 }
 
 /// Contract version. Part of the `diagctl --version` output.
-#[allow(dead_code)] // Read by the markdown checks (#20, #21).
+#[allow(dead_code)] // Only `VERSION_LINE` (through the macro) and tests use it.
 pub const CONTRACT_VERSION: &str = contract_version!();
 
 /// Width of the Markdown content column, in CSS px.
 pub const COLUMN_WIDTH_PX: f32 = 800.0;
 
 /// Minimum font size after the image is scaled into the column, in CSS px.
-#[allow(dead_code)] // Read by the markdown checks (#20, #21).
 pub const MIN_DISPLAYED_FONT_PX: f32 = 11.0;
 
 /// Required opaque background colour.
-#[allow(dead_code)] // Read by the markdown checks (#20, #21).
+#[allow(dead_code)] // Read by the markdown checks (#21).
 pub const BACKGROUND: &str = "#ffffff";
 
 /// Full `--version` string: the crate version followed by the contract version.
