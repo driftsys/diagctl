@@ -21,7 +21,6 @@ pub const COLUMN_WIDTH_PX: f32 = 800.0;
 pub const MIN_DISPLAYED_FONT_PX: f32 = 11.0;
 
 /// Required opaque background colour.
-#[allow(dead_code)] // Read by the markdown checks (#21).
 pub const BACKGROUND: &str = "#ffffff";
 
 /// Full `--version` string: the crate version followed by the contract version.
