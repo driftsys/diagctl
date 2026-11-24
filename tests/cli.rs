@@ -96,17 +96,22 @@ fn check_markdown_passes_sized_svg() {
         .stdout(contains("PASS  [L0] dimensions"));
 }
 
-/// Check output lines without the two target-specific lines (size and font).
+/// Check output lines without the target-specific lines (size, font and
+/// background).
 fn lines_without_target_checks(out: &[u8]) -> Vec<String> {
     String::from_utf8_lossy(out)
         .lines()
-        .filter(|l| !l.contains("dimensions") && !l.contains("min-font-size"))
+        .filter(|l| {
+            !l.contains("dimensions")
+                && !l.contains("min-font-size")
+                && !l.contains("opaque-background")
+        })
         .map(str::to_string)
         .collect()
 }
 
 #[test]
-fn check_targets_differ_only_in_size_and_font_checks() {
+fn check_targets_differ_only_in_size_font_and_background_checks() {
     for fixture in ["tests/fixtures/md-valid.svg", "tests/fixtures/strip.svg"] {
         let html = diagctl().args(["check", fixture]).output().unwrap().stdout;
         let md = diagctl()
@@ -115,10 +120,14 @@ fn check_targets_differ_only_in_size_and_font_checks() {
             .unwrap()
             .stdout;
         let html_rest = lines_without_target_checks(&html);
-        // Exactly two lines are removed from each output.
+        // html has a size and a font line; markdown also has a background line.
         assert_eq!(
             html_rest.len() + 2,
             String::from_utf8_lossy(&html).lines().count()
+        );
+        assert_eq!(
+            html_rest.len() + 3,
+            String::from_utf8_lossy(&md).lines().count()
         );
         assert_eq!(lines_without_target_checks(&md), html_rest, "{fixture}");
     }
@@ -330,4 +339,41 @@ fn check_html_passes_same_font_at_authored_size() {
         .args(["check", "tests/fixtures/md-small-font.svg"])
         .assert()
         .stdout(contains("PASS  [L1] min-font-size"));
+}
+
+#[test]
+fn check_markdown_fails_transparent_background() {
+    diagctl()
+        .args([
+            "check",
+            "--target",
+            "markdown",
+            "tests/fixtures/bg-drawio-transparent.svg",
+        ])
+        .assert()
+        .code(1)
+        .stdout(contains("FAIL  [L1] opaque-background"));
+}
+
+#[test]
+fn check_markdown_passes_white_background() {
+    diagctl()
+        .args([
+            "check",
+            "--target",
+            "markdown",
+            "tests/fixtures/md-valid.svg",
+        ])
+        .assert()
+        .stdout(contains(
+            "PASS  [L1] opaque-background  opaque #ffffff background",
+        ));
+}
+
+#[test]
+fn check_html_skips_background_check() {
+    diagctl()
+        .args(["check", "tests/fixtures/bg-drawio-transparent.svg"])
+        .assert()
+        .stdout(contains("opaque-background").not());
 }

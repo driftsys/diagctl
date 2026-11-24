@@ -20,9 +20,10 @@ One standalone binary (zero runtime dependencies) with these subcommands:
 - **`check`** — the diagram gate. Each check prints `PASS`/`FAIL` with a layer
   tag; exit `0` clean · `1` ≥1 check failed · `2` operational error.
   `--target html|markdown` names where the SVG is displayed (default `html`).
-  The targets differ in two checks: `html` runs `no-fixed-dimensions`, and
+  The targets differ in three checks: `html` runs `no-fixed-dimensions`, and
   `markdown` runs `dimensions` in its place; `min-font-size` uses an 8px
-  authored floor for `html` and an 11px displayed floor for `markdown`.
+  authored floor for `html` and an 11px displayed floor for `markdown`; only
+  `markdown` runs `opaque-background`.
 
   | Check                 | Layer | What it flags                                                                                                                      |
   | --------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -33,6 +34,7 @@ One standalone binary (zero runtime dependencies) with these subcommands:
   | `min-stroke-width`    | 1     | hairline strokes below 0.5px                                                                                                       |
   | `font-family`         | 1     | text with a single, non-generic family (no fallback)                                                                               |
   | `min-font-size`       | 1     | `html`: `font-size` below 8px; `markdown`: below 11px after scaling to the displayed width (at most 800 px)                        |
+  | `opaque-background`   | 1     | `markdown` only: the first painted element is not an opaque `#ffffff` rectangle that covers the whole image                        |
   | `aspect-ratio`        | 2     | viewBox long/short ratio above 2.5                                                                                                 |
   | `node-overlap`        | 2     | bounding-box overlap of unrelated nodes                                                                                            |
   | `edge-crossings`      | 2     | edge–edge crossings in open whitespace                                                                                             |
@@ -120,8 +122,9 @@ just verify            # commit-message lint + full gate, before opening a PR
 cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
 ```
 
-`check` runs eleven checks from the table above for each target. `optimize` and
-`freshness` are stubbed (exit 2) pending later milestones.
+`check` runs eleven checks from the table above for `html` and twelve for
+`markdown`. `optimize` and `freshness` are stubbed (exit 2) pending later
+milestones.
 
 ## License
 
