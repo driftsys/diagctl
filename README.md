@@ -6,9 +6,10 @@ A single, hermetic, cross-platform CLI that automates the **tech-diagramming**
 quality gate — the Phase-2 tooling for the
 [metapowers](https://github.com/driftsys/metapowers) diagramming skill family.
 
-> **Status:** `check` runs an **11-check** deterministic gate across Layers 0–2
-> (no vision, near-zero cost). `optimize`/`freshness` are stubbed. Full design,
-> scope, and acceptance criteria live in
+> **Status:** `check` runs a deterministic gate of 11 checks (`html`) or 12
+> checks (`markdown`) across Layers 0–2 (no vision, near-zero cost).
+> `optimize`/`freshness` are stubbed. Full design, scope, and acceptance
+> criteria live in
 > **[metapowers#14](https://github.com/driftsys/metapowers/issues/14)**;
 > remaining checks are tracked in
 > **[#2](https://github.com/driftsys/diagctl/issues/2)**.
@@ -23,7 +24,9 @@ One standalone binary (zero runtime dependencies) with these subcommands:
   The targets differ in three checks: `html` runs `no-fixed-dimensions`, and
   `markdown` runs `dimensions` in its place; `min-font-size` uses an 8px
   authored floor for `html` and an 11px displayed floor for `markdown`; only
-  `markdown` runs `opaque-background`.
+  `markdown` runs `opaque-background`. PlantUML writes its white background only
+  as a root CSS `background`, which is not read, so PlantUML output fails
+  `opaque-background`.
 
   | Check                 | Layer | What it flags                                                                                                                      |
   | --------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------- |
