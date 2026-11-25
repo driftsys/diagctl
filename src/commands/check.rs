@@ -1,21 +1,43 @@
 use crate::checks::{self, Status};
 use crate::cli::Target;
 use crate::svg;
-use std::path::Path;
+use std::path::PathBuf;
 
-pub fn run(file: &Path, target: Target) -> anyhow::Result<i32> {
-    let svg = svg::load(file)?;
-    let results = checks::run_all(&svg, target);
+/// Checks each file in order. A file that cannot be read is reported on
+/// stderr and the other files are still checked. Exit code: 2 if any file
+/// could not be read, otherwise 1 if any check failed, otherwise 0.
+pub fn run(files: &[PathBuf], target: Target) -> anyhow::Result<i32> {
+    let many = files.len() > 1;
     let mut any_failed = false;
-    for r in &results {
-        let tag = match r.status {
-            Status::Pass => "PASS",
-            Status::Fail => {
-                any_failed = true;
-                "FAIL"
+    let mut any_error = false;
+    for file in files {
+        let svg = match svg::load(file) {
+            Ok(svg) => svg,
+            Err(err) => {
+                eprintln!("diagctl: {}: {err:#}", file.display());
+                any_error = true;
+                continue;
             }
         };
-        println!("{tag}  [L{}] {}  {}", r.layer, r.id, r.detail);
+        if many {
+            println!("{}", file.display());
+        }
+        for r in checks::run_all(&svg, target) {
+            let tag = match r.status {
+                Status::Pass => "PASS",
+                Status::Fail => {
+                    any_failed = true;
+                    "FAIL"
+                }
+            };
+            println!("{tag}  [L{}] {}  {}", r.layer, r.id, r.detail);
+        }
     }
-    Ok(if any_failed { 1 } else { 0 })
+    Ok(if any_error {
+        2
+    } else if any_failed {
+        1
+    } else {
+        0
+    })
 }

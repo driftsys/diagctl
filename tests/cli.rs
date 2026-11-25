@@ -188,7 +188,74 @@ fn check_missing_file_exits_2() {
     diagctl()
         .args(["check", "tests/fixtures/does-not-exist.svg"])
         .assert()
-        .code(2);
+        .code(2)
+        .stderr(contains("diagctl: tests/fixtures/does-not-exist.svg: "));
+}
+
+#[test]
+fn check_requires_a_file() {
+    diagctl()
+        .args(["check"])
+        .assert()
+        .code(2)
+        .stderr(contains("<FILES>..."));
+}
+
+#[test]
+fn check_one_file_prints_no_header() {
+    let out = String::from_utf8(check_stdout(&["check", "tests/fixtures/in-band.svg"], 0)).unwrap();
+    assert!(out.starts_with("PASS  [L0] viewbox-present"), "{out}");
+}
+
+#[test]
+fn check_many_files_prints_a_header_per_file() {
+    let out = diagctl()
+        .args([
+            "check",
+            "tests/fixtures/in-band.svg",
+            "tests/fixtures/strip.svg",
+        ])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    let out = String::from_utf8(out).unwrap();
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines[0], "tests/fixtures/in-band.svg");
+    assert_eq!(lines[12], "tests/fixtures/strip.svg");
+    assert_eq!(lines.len(), 24, "{out}");
+    assert!(lines[13].starts_with("PASS  [L0] viewbox-present"), "{out}");
+}
+
+#[test]
+fn check_many_files_exit_1_when_only_checks_fail() {
+    diagctl()
+        .args([
+            "check",
+            "tests/fixtures/strip.svg",
+            "tests/fixtures/in-band.svg",
+        ])
+        .assert()
+        .code(1);
+}
+
+#[test]
+fn check_unreadable_file_is_reported_and_others_still_checked() {
+    let assert = diagctl()
+        .args([
+            "check",
+            "tests/fixtures/does-not-exist.svg",
+            "tests/fixtures/strip.svg",
+        ])
+        .assert()
+        .code(2)
+        .stderr(contains("diagctl: tests/fixtures/does-not-exist.svg: "));
+    let out = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
+    // The unreadable file gets no header; the readable one is checked.
+    assert!(!out.contains("does-not-exist"), "{out}");
+    assert!(out.starts_with("tests/fixtures/strip.svg\n"), "{out}");
+    assert!(out.contains("FAIL  [L2] aspect-ratio"), "{out}");
 }
 
 #[test]
