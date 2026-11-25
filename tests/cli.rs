@@ -190,7 +190,7 @@ fn check_missing_file_exits_2() {
         .assert()
         .code(2)
         .stderr(contains(
-            "diagctl: tests/fixtures/does-not-exist.svg: No such file or directory",
+            "diagctl: tests/fixtures/does-not-exist.svg: (os error 2)",
         ));
 }
 
@@ -301,7 +301,7 @@ fn check_unreadable_file_is_reported_and_others_still_checked() {
         .assert()
         .code(2)
         .stderr(contains(
-            "diagctl: tests/fixtures/does-not-exist.svg: No such file or directory",
+            "diagctl: tests/fixtures/does-not-exist.svg: (os error 2)",
         ))
         .stderr(contains("diagctl: tests/fixtures/malformed.svg: "));
     let out = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
