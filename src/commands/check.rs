@@ -3,9 +3,10 @@ use crate::cli::Target;
 use crate::svg;
 use std::path::PathBuf;
 
-/// Checks each file in order. A file that cannot be read is reported on
-/// stderr and the other files are still checked. Exit code: 2 if any file
-/// could not be read, otherwise 1 if any check failed, otherwise 0.
+/// Checks each file in order. A file that cannot be read or parsed as SVG is
+/// reported on stderr and the other files are still checked. Exit code: 2 if
+/// any file could not be read or parsed, otherwise 1 if any check failed,
+/// otherwise 0.
 pub fn run(files: &[PathBuf], target: Target) -> anyhow::Result<i32> {
     let many = files.len() > 1;
     let mut any_failed = false;

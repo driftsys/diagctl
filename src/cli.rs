@@ -19,7 +19,7 @@ pub enum Command {
         /// Where the SVG is displayed: inlined in HTML, or through a Markdown image
         #[arg(long, value_enum, default_value_t = Target::Html)]
         target: Target,
-        #[arg(required = true)]
+        #[arg(required = true, value_name = "FILE")]
         files: Vec<PathBuf>,
     },
     /// (not yet implemented) Conservative SVGO-style optimization

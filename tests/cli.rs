@@ -189,7 +189,9 @@ fn check_missing_file_exits_2() {
         .args(["check", "tests/fixtures/does-not-exist.svg"])
         .assert()
         .code(2)
-        .stderr(contains("diagctl: tests/fixtures/does-not-exist.svg: "));
+        .stderr(contains(
+            "diagctl: tests/fixtures/does-not-exist.svg: No such file or directory",
+        ));
 }
 
 #[test]
@@ -198,7 +200,21 @@ fn check_requires_a_file() {
         .args(["check"])
         .assert()
         .code(2)
-        .stderr(contains("<FILES>..."));
+        .stderr(contains("required"))
+        .stderr(contains("<FILE>..."));
+}
+
+/// Splits check output into (header, result lines) blocks.
+fn blocks(out: &str) -> Vec<(String, Vec<String>)> {
+    let mut blocks: Vec<(String, Vec<String>)> = Vec::new();
+    for line in out.lines() {
+        if line.starts_with("PASS") || line.starts_with("FAIL") {
+            blocks.last_mut().unwrap().1.push(line.to_string());
+        } else {
+            blocks.push((line.to_string(), Vec::new()));
+        }
+    }
+    blocks
 }
 
 #[test]
@@ -209,23 +225,56 @@ fn check_one_file_prints_no_header() {
 
 #[test]
 fn check_many_files_prints_a_header_per_file() {
-    let out = diagctl()
-        .args([
+    let out = String::from_utf8(check_stdout(
+        &[
             "check",
             "tests/fixtures/in-band.svg",
             "tests/fixtures/strip.svg",
-        ])
-        .assert()
-        .code(1)
-        .get_output()
-        .stdout
-        .clone();
-    let out = String::from_utf8(out).unwrap();
-    let lines: Vec<&str> = out.lines().collect();
-    assert_eq!(lines[0], "tests/fixtures/in-band.svg");
-    assert_eq!(lines[12], "tests/fixtures/strip.svg");
-    assert_eq!(lines.len(), 24, "{out}");
-    assert!(lines[13].starts_with("PASS  [L0] viewbox-present"), "{out}");
+        ],
+        1,
+    ))
+    .unwrap();
+    let b = blocks(&out);
+    assert_eq!(b.len(), 2, "{out}");
+    assert_eq!(b[0].0, "tests/fixtures/in-band.svg");
+    assert_eq!(b[1].0, "tests/fixtures/strip.svg");
+    // Each block holds that file's own results.
+    assert!(b[0].1.iter().all(|l| l.starts_with("PASS")), "{out}");
+    assert!(
+        b[1].1
+            .iter()
+            .any(|l| l.starts_with("FAIL  [L2] aspect-ratio")),
+        "{out}"
+    );
+    assert_eq!(b[0].1.len(), b[1].1.len(), "{out}");
+}
+
+#[test]
+fn check_many_files_applies_target_to_every_file() {
+    let out = String::from_utf8(check_stdout(
+        &[
+            "check",
+            "--target",
+            "markdown",
+            "tests/fixtures/md-valid.svg",
+            "tests/fixtures/bg-drawio-transparent.svg",
+        ],
+        1,
+    ))
+    .unwrap();
+    let b = blocks(&out);
+    assert_eq!(b.len(), 2, "{out}");
+    for (_, lines) in &b {
+        assert!(lines.iter().any(|l| l.contains("] dimensions")), "{out}");
+        assert!(
+            lines.iter().any(|l| l.contains("opaque-background")),
+            "{out}"
+        );
+        assert!(
+            !lines.iter().any(|l| l.contains("no-fixed-dimensions")),
+            "{out}"
+        );
+    }
 }
 
 #[test]
@@ -247,15 +296,25 @@ fn check_unreadable_file_is_reported_and_others_still_checked() {
             "check",
             "tests/fixtures/does-not-exist.svg",
             "tests/fixtures/strip.svg",
+            "tests/fixtures/malformed.svg",
         ])
         .assert()
         .code(2)
-        .stderr(contains("diagctl: tests/fixtures/does-not-exist.svg: "));
+        .stderr(contains(
+            "diagctl: tests/fixtures/does-not-exist.svg: No such file or directory",
+        ))
+        .stderr(contains("diagctl: tests/fixtures/malformed.svg: "));
     let out = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
-    // The unreadable file gets no header; the readable one is checked.
-    assert!(!out.contains("does-not-exist"), "{out}");
-    assert!(out.starts_with("tests/fixtures/strip.svg\n"), "{out}");
-    assert!(out.contains("FAIL  [L2] aspect-ratio"), "{out}");
+    // Files that fail to load get no header; the readable one is checked.
+    let b = blocks(&out);
+    assert_eq!(b.len(), 1, "{out}");
+    assert_eq!(b[0].0, "tests/fixtures/strip.svg");
+    assert!(
+        b[0].1
+            .iter()
+            .any(|l| l.starts_with("FAIL  [L2] aspect-ratio")),
+        "{out}"
+    );
 }
 
 #[test]

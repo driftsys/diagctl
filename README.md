@@ -21,12 +21,13 @@ One standalone binary (zero runtime dependencies) with these subcommands:
 - **`check`** — the diagram gate. Each check prints `PASS`/`FAIL` with a layer
   tag; exit `0` clean · `1` ≥1 check failed · `2` operational error. It takes
   one or more files; with more than one, each file's path is printed before its
-  results. A file that cannot be read is reported on stderr, the other files are
-  still checked, and the exit code is `2`. `--target html|markdown` names where
-  the SVG is displayed (default `html`). The targets differ in three checks:
-  `html` runs `no-fixed-dimensions`, and `markdown` runs `dimensions` in its
-  place; `min-font-size` uses an 8px authored floor for `html` and an 11px
-  displayed floor for `markdown`; only `markdown` runs `opaque-background`.
+  results. A file that cannot be read or parsed as SVG is reported on stderr,
+  the other files are still checked, and the exit code is `2`.
+  `--target html|markdown` names where the SVG is displayed (default `html`).
+  The targets differ in three checks: `html` runs `no-fixed-dimensions`, and
+  `markdown` runs `dimensions` in its place; `min-font-size` uses an 8px
+  authored floor for `html` and an 11px displayed floor for `markdown`; only
+  `markdown` runs `opaque-background`.
 
   | Check                 | Layer | What it flags                                                                                                                                                                         |
   | --------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
