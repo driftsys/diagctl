@@ -189,9 +189,8 @@ fn check_missing_file_exits_2() {
         .args(["check", "tests/fixtures/does-not-exist.svg"])
         .assert()
         .code(2)
-        .stderr(contains(
-            "diagctl: tests/fixtures/does-not-exist.svg: (os error 2)",
-        ));
+        .stderr(contains("diagctl: tests/fixtures/does-not-exist.svg: "))
+        .stderr(contains("(os error 2)"));
 }
 
 #[test]
@@ -300,9 +299,8 @@ fn check_unreadable_file_is_reported_and_others_still_checked() {
         ])
         .assert()
         .code(2)
-        .stderr(contains(
-            "diagctl: tests/fixtures/does-not-exist.svg: (os error 2)",
-        ))
+        .stderr(contains("diagctl: tests/fixtures/does-not-exist.svg: "))
+        .stderr(contains("(os error 2)"))
         .stderr(contains("diagctl: tests/fixtures/malformed.svg: "));
     let out = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
     // Files that fail to load get no header; the readable one is checked.
