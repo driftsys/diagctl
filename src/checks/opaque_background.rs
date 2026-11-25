@@ -1,6 +1,7 @@
-//! `opaque-background` (`--target markdown`): the first painted element is a
-//! rectangle that covers the whole image, filled with the contract background
-//! colour at full opacity.
+//! `opaque-background` (`--target markdown`): either the `style` attribute of
+//! the root `<svg>` sets an opaque `#ffffff` CSS background, or the first
+//! painted element is a rectangle that covers the whole image, filled with the
+//! contract background colour at full opacity.
 //!
 //! A transparent SVG shows the page colour through it, so dark text becomes
 //! unreadable on a dark page (#21).
@@ -10,9 +11,15 @@
 //! - The rectangle must stay an axis-aligned rectangle after its transforms.
 //! - A clip on the rectangle or its parent groups must itself be a rectangle
 //!   that covers the image. A mask or a filter fails the check.
-//! - `usvg` turns a root `background-color` into a painted rectangle, so that
-//!   property counts. The CSS `background` shorthand, which PlantUML writes,
-//!   does not.
+//! - Root CSS background: Chrome paints a CSS background of the root `<svg>`
+//!   under the whole image inside `<img>`. This was checked with files served
+//!   by GitHub; other browsers and GitLab were not checked. PlantUML writes its
+//!   background this way. Only the root `style` attribute is read, and only a
+//!   plain value: a single colour without an alpha part, plus harmless
+//!   keywords. A CSS comment, `!important`, an image or any unknown token
+//!   fails this rule. A `<style>` element is not read here, but `usvg` may turn
+//!   a stylesheet `background-color` into a painted rectangle, which the
+//!   rectangle rule then checks.
 //! - Text is not seen: `svg::load` has no fonts, so `usvg` drops text. Text
 //!   painted before the rectangle would be hidden by it.
 
@@ -26,13 +33,107 @@ use usvg::{Group, Node, Paint, Path, Rect, Size, Transform};
 const EDGE_TOLERANCE_PX: f32 = 0.5;
 
 pub fn check(svg: &Svg) -> CheckResult {
-    let (status, detail) = evaluate(&svg.tree);
+    let (status, detail) = if root_css_is_white(&svg.raw) {
+        (
+            Status::Pass,
+            format!("opaque {BACKGROUND} root CSS background"),
+        )
+    } else {
+        evaluate(&svg.tree)
+    };
     CheckResult {
         id: "opaque-background",
         layer: 1,
         status,
         detail,
     }
+}
+
+/// Keywords of the CSS `background` shorthand that do not paint an image.
+const HARMLESS_KEYWORDS: &[&str] = &[
+    "none",
+    "repeat",
+    "no-repeat",
+    "repeat-x",
+    "repeat-y",
+    "scroll",
+    "fixed",
+    "local",
+    "border-box",
+    "padding-box",
+    "content-box",
+];
+
+/// True when the last `background` or `background-color` declaration in the
+/// root `style` attribute is exactly one colour equal to `BACKGROUND`, with no
+/// alpha part, plus only `HARMLESS_KEYWORDS`.
+fn root_css_is_white(raw: &str) -> bool {
+    let Ok(doc) = roxmltree::Document::parse(raw) else {
+        return false;
+    };
+    let Some(style) = doc.root_element().attribute("style") else {
+        return false;
+    };
+    // Comments and `!important` change which declaration wins; do not guess.
+    if style.contains("/*") || style.contains('!') {
+        return false;
+    }
+    // Splitting on `;` ignores quotes and parentheses. An affected value
+    // holds a `url(` and fails the token rule below.
+    let value = style
+        .split(';')
+        .rev()
+        .filter_map(|decl| decl.split_once(':'))
+        .find(|(k, _)| {
+            let k = k.trim();
+            k.eq_ignore_ascii_case("background") || k.eq_ignore_ascii_case("background-color")
+        })
+        .map(|(_, v)| v.trim().to_ascii_lowercase());
+    let Some(value) = value else {
+        return false;
+    };
+    let mut colour = None;
+    for token in css_tokens(&value) {
+        if HARMLESS_KEYWORDS.contains(&token.as_str()) {
+            continue;
+        }
+        let has_alpha = token.starts_with("rgba(")
+            || token.starts_with("hsla(")
+            || token.contains('/')
+            || (token.starts_with('#') && matches!(token.len(), 5 | 9));
+        match token.parse::<svgtypes::Color>() {
+            Ok(c) if colour.is_none() && !has_alpha => colour = Some(c),
+            _ => return false,
+        }
+    }
+    colour.is_some_and(|c| {
+        c.alpha == 255 && format!("#{:02x}{:02x}{:02x}", c.red, c.green, c.blue) == BACKGROUND
+    })
+}
+
+/// Splits a CSS value on whitespace that is not inside parentheses.
+fn css_tokens(value: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    let mut depth = 0u32;
+    for ch in value.chars() {
+        match ch {
+            '(' => depth += 1,
+            ')' => depth = depth.saturating_sub(1),
+            c if c.is_whitespace() && depth == 0 => {
+                if !current.is_empty() {
+                    tokens.push(std::mem::take(&mut current));
+                }
+                continue;
+            }
+            _ => {}
+        }
+        current.push(ch);
+    }
+    if !current.is_empty() {
+        tokens.push(current);
+    }
+    tokens
 }
 
 /// What `first_painted` finds.
@@ -455,13 +556,73 @@ mod tests {
     }
 
     #[test]
-    fn root_css_background() {
+    fn root_css_background_color_via_usvg() {
         assert_eq!(eval_root_style("background-color: #ffffff").0, Status::Pass);
         assert_eq!(
             eval_root_style("background-color: transparent").0,
             Status::Fail
         );
-        assert_eq!(eval_root_style("background: #ffffff").0, Status::Fail);
+    }
+
+    #[test]
+    fn root_css_is_white_table() {
+        let root = |style: &str| {
+            root_css_is_white(&format!(
+                r#"<svg xmlns="http://www.w3.org/2000/svg" style="{style}"/>"#
+            ))
+        };
+        for style in [
+            "background:#FFFFFF;",
+            "width:66px;height:105px;background:#FFFFFF;",
+            "background: white",
+            "background-color: #fff",
+            "BACKGROUND: rgb(255, 255, 255)",
+            "background: transparent; background-color: #ffffff",
+            "background: #ffffff no-repeat scroll",
+            "background: #FFFFFF No-Repeat",
+            "background-color: #ffffff; background-position: center",
+        ] {
+            assert!(root(style), "{style}");
+        }
+        for style in [
+            "",
+            "width:66px",
+            "background: transparent",
+            "background: #fafafa",
+            "background: #ffff00",
+            "background: #feffff",
+            "background: #fffeff",
+            "background: #fffffe",
+            "background: rgba(255, 255, 255, 0.5)",
+            "background: rgba(255,255,255,0.999)",
+            "background: #ffffffff",
+            "background: #ffff",
+            "background: #ffffff url(a.png)",
+            "background: #ffffff URL(a.png)",
+            "background: linear-gradient(#fff, #fff)",
+            "background: linear-gradient(red, blue) #ffffff",
+            "background: #ffffff Linear-Gradient(red, blue)",
+            "background: #fff garbage",
+            "background: #fff 10px",
+            "background: #fff foo(1)",
+            "background: white black",
+            "background: black white",
+            "background-color: #ffffff; background: transparent",
+            "background: transparent; background-color: transparent",
+            "background:#fff;/* c */ background:transparent",
+            "background: transparent !important; background-color: #fff",
+            "background: #fff !important",
+        ] {
+            assert!(!root(style), "{style}");
+        }
+        assert!(!root_css_is_white("<svg"));
+        // Only the root element's style attribute is read.
+        assert!(!root_css_is_white(
+            r#"<svg xmlns="http://www.w3.org/2000/svg"><g style="background:#fff"/></svg>"#
+        ));
+        assert!(!root_css_is_white(
+            r#"<svg xmlns="http://www.w3.org/2000/svg"><style>svg{background:#fff}</style></svg>"#
+        ));
     }
 
     #[test]
@@ -473,10 +634,9 @@ mod tests {
             ("bg-d2-transparent.svg", Status::Fail, "does not cover"),
             ("bg-drawio.svg", Status::Pass, "opaque"),
             ("bg-drawio-transparent.svg", Status::Fail, "does not cover"),
-            // PlantUML writes its white background only as the root CSS
-            // `background` shorthand, which is not read, so no real
-            // PlantUML export passes.
-            ("bg-plantuml-css-only.svg", Status::Fail, "not a rectangle"),
+            // PlantUML writes its white background as the root CSS
+            // `background` shorthand.
+            ("bg-plantuml.svg", Status::Pass, "root CSS background"),
             ("md-valid.svg", Status::Pass, "opaque"),
         ];
         for (name, want, text) in cases {

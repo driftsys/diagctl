@@ -377,3 +377,19 @@ fn check_html_skips_background_check() {
         .assert()
         .stdout(contains("opaque-background").not());
 }
+
+#[test]
+fn check_markdown_passes_root_css_background() {
+    // PlantUML sets its white background in the root `style` attribute.
+    diagctl()
+        .args([
+            "check",
+            "--target",
+            "markdown",
+            "tests/fixtures/bg-plantuml.svg",
+        ])
+        .assert()
+        .stdout(contains(
+            "PASS  [L1] opaque-background  opaque #ffffff root CSS background",
+        ));
+}
