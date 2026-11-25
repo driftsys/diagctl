@@ -26,21 +26,21 @@ One standalone binary (zero runtime dependencies) with these subcommands:
   authored floor for `html` and an 11px displayed floor for `markdown`; only
   `markdown` runs `opaque-background`.
 
-  | Check                 | Layer | What it flags                                                                                                                                            |
-  | --------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | `viewbox-present`     | 0     | root `<svg>` missing a `viewBox`                                                                                                                         |
-  | `no-fixed-dimensions` | 0     | `html` only: root `<svg>` with fixed `width`/`height`                                                                                                    |
-  | `dimensions`          | 0     | `markdown` only: no valid `viewBox`, `width`/`height` missing or not px, aspect more than 1 % off the `viewBox`, or width > 800 px                       |
-  | `contrast`            | 1     | stroke vs background below WCAG 3:1                                                                                                                      |
-  | `min-stroke-width`    | 1     | hairline strokes below 0.5px                                                                                                                             |
-  | `font-family`         | 1     | text with a single, non-generic family (no fallback)                                                                                                     |
-  | `min-font-size`       | 1     | `html`: `font-size` below 8px; `markdown`: below 11px after scaling to the displayed width (at most 800 px)                                              |
-  | `opaque-background`   | 1     | `markdown` only: no opaque `#ffffff` root CSS background, and the first painted element is not an opaque `#ffffff` rectangle that covers the whole image |
-  | `aspect-ratio`        | 2     | viewBox long/short ratio above 2.5                                                                                                                       |
-  | `node-overlap`        | 2     | bounding-box overlap of unrelated nodes                                                                                                                  |
-  | `edge-crossings`      | 2     | edge–edge crossings in open whitespace                                                                                                                   |
-  | `edge-node-overlap`   | 2     | an edge routed through an unrelated node                                                                                                                 |
-  | `label-overflow`      | 2     | label text clipped at the viewBox edge                                                                                                                   |
+  | Check                 | Layer | What it flags                                                                                                                                                                         |
+  | --------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `viewbox-present`     | 0     | root `<svg>` missing a `viewBox`                                                                                                                                                      |
+  | `no-fixed-dimensions` | 0     | `html` only: root `<svg>` with fixed `width`/`height`                                                                                                                                 |
+  | `dimensions`          | 0     | `markdown` only: no valid `viewBox`, `width`/`height` missing or not px, aspect more than 1 % off the `viewBox`, or width > 800 px                                                    |
+  | `contrast`            | 1     | stroke vs background below WCAG 3:1                                                                                                                                                   |
+  | `min-stroke-width`    | 1     | hairline strokes below 0.5px                                                                                                                                                          |
+  | `font-family`         | 1     | text with a single, non-generic family (no fallback)                                                                                                                                  |
+  | `min-font-size`       | 1     | `html`: `font-size` below 8px; `markdown`: below 11px after scaling to the displayed width (at most 800 px)                                                                           |
+  | `opaque-background`   | 1     | `markdown` only: no opaque `#ffffff` background in the root `<svg>` `style` attribute, and the first painted element is not an opaque `#ffffff` rectangle that covers the whole image |
+  | `aspect-ratio`        | 2     | viewBox long/short ratio above 2.5                                                                                                                                                    |
+  | `node-overlap`        | 2     | bounding-box overlap of unrelated nodes                                                                                                                                               |
+  | `edge-crossings`      | 2     | edge–edge crossings in open whitespace                                                                                                                                                |
+  | `edge-node-overlap`   | 2     | an edge routed through an unrelated node                                                                                                                                              |
+  | `label-overflow`      | 2     | label text clipped at the viewBox edge                                                                                                                                                |
 
   Layer-2 geometry is computed from the rendered SVG via `usvg` (resolved
   geometry + transforms) with hand-rolled bezier-flattening / segment math — no
