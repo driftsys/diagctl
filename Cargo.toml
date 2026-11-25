@@ -15,6 +15,7 @@ exclude = ["tests/fixtures/", ".github/"]
 clap = { version = "4", features = ["derive"] }
 usvg = "0.45"
 roxmltree = "0.20"
+svgtypes = "0.15"
 anyhow = "1"
 
 [dev-dependencies]

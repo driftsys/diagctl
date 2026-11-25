@@ -220,6 +220,7 @@ dependencies = [
  "clap",
  "predicates",
  "roxmltree",
+ "svgtypes",
  "usvg",
 ]
 
