@@ -19,7 +19,10 @@ quality gate — the Phase-2 tooling for the
 One standalone binary (zero runtime dependencies) with these subcommands:
 
 - **`check`** — the diagram gate. Each check prints `PASS`/`FAIL` with a layer
-  tag; exit `0` clean · `1` ≥1 check failed · `2` operational error.
+  tag; exit `0` clean · `1` ≥1 check failed · `2` operational error. It takes
+  one or more files; with more than one, each file's path is printed before its
+  results. A file that cannot be read or parsed as SVG is reported on stderr,
+  the other files are still checked, and the exit code is `2`.
   `--target html|markdown` names where the SVG is displayed (default `html`).
   The targets differ in three checks: `html` runs `no-fixed-dimensions`, and
   `markdown` runs `dimensions` in its place; `min-font-size` uses an 8px
@@ -120,7 +123,7 @@ Requires a Rust toolchain; `rust-toolchain.toml` pins the version. Gates are
 just                   # list recipes
 just build             # full local gate (toolchain, prim, fmt, compile, test, clippy, shellcheck, install test)
 just verify            # commit-message lint + full gate, before opening a PR
-cargo run -- check path/to/diagram.svg   # exit 0 pass / 1 fail / 2 error
+cargo run -- check path/to/*.svg         # exit 0 pass / 1 fail / 2 error
 ```
 
 `check` runs eleven checks from the table above for `html` and twelve for

@@ -188,7 +188,131 @@ fn check_missing_file_exits_2() {
     diagctl()
         .args(["check", "tests/fixtures/does-not-exist.svg"])
         .assert()
-        .code(2);
+        .code(2)
+        .stderr(contains("diagctl: tests/fixtures/does-not-exist.svg: "))
+        .stderr(contains("(os error 2)"));
+}
+
+#[test]
+fn check_requires_a_file() {
+    diagctl()
+        .args(["check"])
+        .assert()
+        .code(2)
+        .stderr(contains("required"))
+        .stderr(contains("<FILE>..."));
+}
+
+/// Splits check output into (header, result lines) blocks.
+fn blocks(out: &str) -> Vec<(String, Vec<String>)> {
+    let mut blocks: Vec<(String, Vec<String>)> = Vec::new();
+    for line in out.lines() {
+        if line.starts_with("PASS") || line.starts_with("FAIL") {
+            blocks.last_mut().unwrap().1.push(line.to_string());
+        } else {
+            blocks.push((line.to_string(), Vec::new()));
+        }
+    }
+    blocks
+}
+
+#[test]
+fn check_one_file_prints_no_header() {
+    let out = String::from_utf8(check_stdout(&["check", "tests/fixtures/in-band.svg"], 0)).unwrap();
+    assert!(out.starts_with("PASS  [L0] viewbox-present"), "{out}");
+}
+
+#[test]
+fn check_many_files_prints_a_header_per_file() {
+    let out = String::from_utf8(check_stdout(
+        &[
+            "check",
+            "tests/fixtures/in-band.svg",
+            "tests/fixtures/strip.svg",
+        ],
+        1,
+    ))
+    .unwrap();
+    let b = blocks(&out);
+    assert_eq!(b.len(), 2, "{out}");
+    assert_eq!(b[0].0, "tests/fixtures/in-band.svg");
+    assert_eq!(b[1].0, "tests/fixtures/strip.svg");
+    // Each block holds that file's own results.
+    assert!(b[0].1.iter().all(|l| l.starts_with("PASS")), "{out}");
+    assert!(
+        b[1].1
+            .iter()
+            .any(|l| l.starts_with("FAIL  [L2] aspect-ratio")),
+        "{out}"
+    );
+    assert_eq!(b[0].1.len(), b[1].1.len(), "{out}");
+}
+
+#[test]
+fn check_many_files_applies_target_to_every_file() {
+    let out = String::from_utf8(check_stdout(
+        &[
+            "check",
+            "--target",
+            "markdown",
+            "tests/fixtures/md-valid.svg",
+            "tests/fixtures/bg-drawio-transparent.svg",
+        ],
+        1,
+    ))
+    .unwrap();
+    let b = blocks(&out);
+    assert_eq!(b.len(), 2, "{out}");
+    for (_, lines) in &b {
+        assert!(lines.iter().any(|l| l.contains("] dimensions")), "{out}");
+        assert!(
+            lines.iter().any(|l| l.contains("opaque-background")),
+            "{out}"
+        );
+        assert!(
+            !lines.iter().any(|l| l.contains("no-fixed-dimensions")),
+            "{out}"
+        );
+    }
+}
+
+#[test]
+fn check_many_files_exit_1_when_only_checks_fail() {
+    diagctl()
+        .args([
+            "check",
+            "tests/fixtures/strip.svg",
+            "tests/fixtures/in-band.svg",
+        ])
+        .assert()
+        .code(1);
+}
+
+#[test]
+fn check_unreadable_file_is_reported_and_others_still_checked() {
+    let assert = diagctl()
+        .args([
+            "check",
+            "tests/fixtures/does-not-exist.svg",
+            "tests/fixtures/strip.svg",
+            "tests/fixtures/malformed.svg",
+        ])
+        .assert()
+        .code(2)
+        .stderr(contains("diagctl: tests/fixtures/does-not-exist.svg: "))
+        .stderr(contains("(os error 2)"))
+        .stderr(contains("diagctl: tests/fixtures/malformed.svg: "));
+    let out = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
+    // Files that fail to load get no header; the readable one is checked.
+    let b = blocks(&out);
+    assert_eq!(b.len(), 1, "{out}");
+    assert_eq!(b[0].0, "tests/fixtures/strip.svg");
+    assert!(
+        b[0].1
+            .iter()
+            .any(|l| l.starts_with("FAIL  [L2] aspect-ratio")),
+        "{out}"
+    );
 }
 
 #[test]

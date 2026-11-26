@@ -32,6 +32,14 @@ Date: 2026-11-11. Source: cross-tool review of pixctl, tblctl and diagctl.
      and a README link.
    - `REVIEW` exits 0 and `--strict` makes it exit 1; `check` accepts multiple
      files. Exit codes stay 0/1/2.
+   - Decided 2026-11-25: with more than one file, `check` prints the file path
+     on its own line before that file's results; one-file output does not
+     change. A file that cannot be read or parsed is reported on stderr, the
+     other files are still checked, and the exit code is 2. No check reports
+     `REVIEW` yet, so `--strict` is accepted and has no effect, as in tblctl
+     AD-0001. The work is three PRs: many files, then the `--json` envelope,
+     then the human output (colour, summary line, `--help` examples,
+     `--strict`).
 4. **Docs layout.** Working memory lives in tracked `docs/wip/`. Remove the
    `/wip/superpowers/` ignore entry. Move the local `wip/superpowers/` notes for
    shipped work to `docs/archive/`, and the notes for open work (the ascii

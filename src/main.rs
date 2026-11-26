@@ -12,7 +12,7 @@ use cli::{Cli, Command};
 fn main() {
     let cli = Cli::parse();
     let result = match cli.command {
-        Command::Check { target, file } => commands::check::run(&file, target),
+        Command::Check { target, files } => commands::check::run(&files, target),
         Command::Optimize { file } => commands::optimize::run(&file),
         Command::Freshness { file } => commands::freshness::run(&file),
     };

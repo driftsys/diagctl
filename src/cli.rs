@@ -14,12 +14,13 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
-    /// Run the diagram quality gate on an SVG file
+    /// Run the diagram quality gate on one or more SVG files
     Check {
         /// Where the SVG is displayed: inlined in HTML, or through a Markdown image
         #[arg(long, value_enum, default_value_t = Target::Html)]
         target: Target,
-        file: PathBuf,
+        #[arg(required = true, value_name = "FILE")]
+        files: Vec<PathBuf>,
     },
     /// (not yet implemented) Conservative SVGO-style optimization
     Optimize { file: PathBuf },
