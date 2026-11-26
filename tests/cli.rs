@@ -687,3 +687,109 @@ fn stubs_text_mode_print_nothing_on_stdout() {
             .stderr(contains(format!("diagctl: {command}: not yet implemented")));
     }
 }
+
+/// The check ids of text output, in order (header lines skipped).
+fn text_check_ids(out: &str) -> Vec<String> {
+    out.lines()
+        .filter(|l| l.starts_with("PASS") || l.starts_with("FAIL"))
+        .map(|l| l.split_whitespace().nth(2).unwrap().to_string())
+        .collect()
+}
+
+#[test]
+fn check_json_results_follow_text_order() {
+    for args in [
+        vec!["tests/fixtures/in-band.svg"],
+        vec!["--target", "markdown", "tests/fixtures/md-valid.svg"],
+        vec![
+            "tests/fixtures/does-not-exist.svg",
+            "tests/fixtures/strip.svg",
+            "tests/fixtures/md-valid.svg",
+        ],
+    ] {
+        let text = diagctl().arg("check").args(&args).output().unwrap();
+        let json = diagctl()
+            .args(["check", "--json"])
+            .args(&args)
+            .output()
+            .unwrap();
+        assert_eq!(text.status.code(), json.status.code(), "{args:?}");
+        let v: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+        let json_ids: Vec<String> = v["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["check"].as_str().unwrap().to_string())
+            .collect();
+        let text_ids = text_check_ids(&String::from_utf8(text.stdout).unwrap());
+        assert!(!text_ids.is_empty(), "{args:?}");
+        assert_eq!(json_ids, text_ids, "{args:?}");
+    }
+}
+
+fn keys(v: &serde_json::Value) -> Vec<&str> {
+    v.as_object().unwrap().keys().map(String::as_str).collect()
+}
+
+#[test]
+fn check_json_inner_key_order_and_trailing_newline() {
+    let out = diagctl()
+        .args([
+            "check",
+            "--json",
+            "tests/fixtures/in-band.svg",
+            "tests/fixtures/does-not-exist.svg",
+        ])
+        .output()
+        .unwrap();
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(text.ends_with("}\n"), "{text}");
+    let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(
+        keys(&v["results"][0]),
+        ["file", "check", "layer", "status", "detail"]
+    );
+    assert_eq!(keys(&v["summary"]), ["checks", "pass", "fail"]);
+    assert_eq!(keys(&v["errors"][0]), ["code", "message", "file"]);
+}
+
+#[test]
+fn check_json_every_file_fails_to_load() {
+    let v = envelope(
+        &[
+            "check",
+            "--json",
+            "tests/fixtures/does-not-exist.svg",
+            "tests/fixtures/malformed.svg",
+        ],
+        2,
+    );
+    assert_eq!(v["results"], serde_json::json!([]));
+    assert_eq!(
+        v["summary"],
+        serde_json::json!({"checks": 0, "pass": 0, "fail": 0})
+    );
+    assert_eq!(v["errors"].as_array().unwrap().len(), 2, "{v}");
+}
+
+#[test]
+fn check_json_non_utf8_file_is_read_failed() {
+    let v = envelope(&["check", "--json", "tests/fixtures/not-utf8.svg"], 2);
+    assert_eq!(v["errors"][0]["code"], "read_failed", "{v}");
+}
+
+#[test]
+fn argument_errors_print_no_json() {
+    for args in [
+        vec!["check", "--json"],
+        vec![
+            "check",
+            "--json",
+            "--target",
+            "pdf",
+            "tests/fixtures/in-band.svg",
+        ],
+    ] {
+        diagctl().args(&args).assert().code(2).stdout("");
+    }
+}

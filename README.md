@@ -80,12 +80,13 @@ also when there are errors (the envelope of tblctl
 - `summary`: for `check`, `{checks, pass, fail}`. `optimize` and `freshness`
   give empty `results` and `summary`.
 - `errors`: one object per operational error, with a stable `code`, a `message`
-  and, when the error is about one file, `file`. The codes are `read_failed`,
-  `parse_failed` and `not_implemented`. Each error is also printed on stderr as
+  and, when the error is about one file, `file`. The codes are `read_failed`
+  (including a file that is not UTF-8 text), `parse_failed` and
+  `not_implemented`. Each error is also printed on stderr as
   `diagctl: <message>`.
 - The exit codes are the same as in text mode. Argument errors (an unknown flag,
-  a missing file) are printed by the argument parser as text, with exit 2 and no
-  JSON.
+  a missing `FILE` argument) are printed by the argument parser as text, with
+  exit 2 and no JSON.
 
 It **reimplements** these checks in one binary rather than gluing svgo / svglint
 / xmllint / contrast tools together — so consumers get a single dependency-free

@@ -15,12 +15,14 @@ pub struct Error {
 }
 
 /// Writes the output of `command` and returns the exit code: 2 if there is
-/// any error, otherwise 1 if `failed`, otherwise 0.
+/// any error or if writing stdout fails (other than a closed pipe), otherwise
+/// 1 if `failed`, otherwise 0.
 ///
 /// With `json`, stdout gets one pretty-printed object with `schema`,
 /// `results`, `summary` and `errors`; otherwise stdout gets `text`. In both
 /// modes each error is also written to stderr as one `diagctl: <message>`
-/// line.
+/// line. All stderr lines are written before stdout, so in a merged stream
+/// the errors come first.
 pub fn finish(
     command: &str,
     json: bool,
