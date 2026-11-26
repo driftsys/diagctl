@@ -517,3 +517,173 @@ fn check_markdown_passes_root_css_background() {
             "PASS  [L1] opaque-background  opaque #ffffff root CSS background",
         ));
 }
+
+/// Runs diagctl with `args`, asserts the exit code, and parses stdout as one
+/// JSON document.
+fn envelope(args: &[&str], code: i32) -> serde_json::Value {
+    let out = check_stdout(args, code);
+    serde_json::from_slice(&out).expect("stdout is one JSON document")
+}
+
+#[test]
+fn check_json_is_one_pretty_object_with_schema_first() {
+    let out = String::from_utf8(check_stdout(
+        &["check", "--json", "tests/fixtures/in-band.svg"],
+        0,
+    ))
+    .unwrap();
+    assert!(
+        out.starts_with("{\n  \"schema\": \"diagctl/check/v1\",\n"),
+        "{out}"
+    );
+    let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+    let keys: Vec<&str> = v.as_object().unwrap().keys().map(String::as_str).collect();
+    assert_eq!(keys, ["schema", "results", "summary", "errors"]);
+}
+
+#[test]
+fn check_json_clean_file() {
+    let v = envelope(&["check", "--json", "tests/fixtures/in-band.svg"], 0);
+    let results = v["results"].as_array().unwrap();
+    assert_eq!(results.len(), 11, "{v}");
+    for r in results {
+        assert_eq!(r["file"], "tests/fixtures/in-band.svg");
+        assert_eq!(r["status"], "pass");
+    }
+    assert_eq!(results[0]["check"], "viewbox-present");
+    assert_eq!(results[0]["layer"], 0);
+    assert_eq!(results[0]["detail"], "root <svg> has a viewBox");
+    assert_eq!(
+        v["summary"],
+        serde_json::json!({"checks": 11, "pass": 11, "fail": 0})
+    );
+    assert_eq!(v["errors"], serde_json::json!([]));
+}
+
+#[test]
+fn check_json_failing_file() {
+    let v = envelope(&["check", "--json", "tests/fixtures/strip.svg"], 1);
+    let results = v["results"].as_array().unwrap();
+    let aspect = results
+        .iter()
+        .find(|r| r["check"] == "aspect-ratio")
+        .unwrap();
+    assert_eq!(aspect["status"], "fail");
+    assert_eq!(aspect["layer"], 2);
+    let failed = results.iter().filter(|r| r["status"] == "fail").count();
+    assert!(failed >= 1);
+    assert_eq!(v["summary"]["checks"], results.len());
+    assert_eq!(v["summary"]["fail"], failed);
+    assert_eq!(v["summary"]["pass"], results.len() - failed);
+}
+
+#[test]
+fn check_json_applies_target() {
+    let v = envelope(
+        &[
+            "check",
+            "--json",
+            "--target",
+            "markdown",
+            "tests/fixtures/md-valid.svg",
+        ],
+        0,
+    );
+    let checks: Vec<&str> = v["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["check"].as_str().unwrap())
+        .collect();
+    assert_eq!(checks.len(), 12, "{v}");
+    assert!(checks.contains(&"opaque-background"), "{v}");
+}
+
+#[test]
+fn check_json_reports_load_errors_with_stable_codes() {
+    let assert = diagctl()
+        .args([
+            "check",
+            "--json",
+            "tests/fixtures/does-not-exist.svg",
+            "tests/fixtures/in-band.svg",
+            "tests/fixtures/malformed.svg",
+        ])
+        .assert()
+        .code(2)
+        .stderr(contains("diagctl: tests/fixtures/does-not-exist.svg: "))
+        .stderr(contains("diagctl: tests/fixtures/malformed.svg: "));
+    let v: serde_json::Value = serde_json::from_slice(&assert.get_output().stdout).unwrap();
+    let errors = v["errors"].as_array().unwrap();
+    assert_eq!(errors.len(), 2, "{v}");
+    assert_eq!(errors[0]["code"], "read_failed");
+    assert_eq!(errors[0]["file"], "tests/fixtures/does-not-exist.svg");
+    let message = errors[0]["message"].as_str().unwrap();
+    assert!(
+        message.starts_with("tests/fixtures/does-not-exist.svg: "),
+        "{v}"
+    );
+    assert!(message.contains("(os error 2)"), "{v}");
+    assert_eq!(errors[1]["code"], "parse_failed");
+    assert_eq!(errors[1]["file"], "tests/fixtures/malformed.svg");
+    // The readable file is still checked, and only its results are listed.
+    let results = v["results"].as_array().unwrap();
+    assert_eq!(results.len(), 11, "{v}");
+    assert!(results
+        .iter()
+        .all(|r| r["file"] == "tests/fixtures/in-band.svg"));
+    assert_eq!(v["summary"]["checks"], 11);
+}
+
+#[test]
+fn check_json_lists_results_of_every_file() {
+    let v = envelope(
+        &[
+            "check",
+            "--json",
+            "tests/fixtures/in-band.svg",
+            "tests/fixtures/strip.svg",
+        ],
+        1,
+    );
+    let results = v["results"].as_array().unwrap();
+    assert_eq!(results.len(), 22, "{v}");
+    assert!(results[..11]
+        .iter()
+        .all(|r| r["file"] == "tests/fixtures/in-band.svg"));
+    assert!(results[11..]
+        .iter()
+        .all(|r| r["file"] == "tests/fixtures/strip.svg"));
+    assert_eq!(v["summary"]["checks"], 22);
+}
+
+#[test]
+fn stubs_json_report_not_implemented() {
+    for command in ["optimize", "freshness"] {
+        let assert = diagctl()
+            .args([command, "--json", "tests/fixtures/in-band.svg"])
+            .assert()
+            .code(2)
+            .stderr(contains(format!("diagctl: {command}: not yet implemented")));
+        let v: serde_json::Value = serde_json::from_slice(&assert.get_output().stdout).unwrap();
+        assert_eq!(v["schema"], format!("diagctl/{command}/v1"));
+        assert_eq!(v["results"], serde_json::json!([]));
+        assert_eq!(v["summary"], serde_json::json!({}));
+        let errors = v["errors"].as_array().unwrap();
+        assert_eq!(errors.len(), 1, "{v}");
+        assert_eq!(errors[0]["code"], "not_implemented");
+        assert!(errors[0].get("file").is_none(), "{v}");
+    }
+}
+
+#[test]
+fn stubs_text_mode_print_nothing_on_stdout() {
+    for command in ["optimize", "freshness"] {
+        diagctl()
+            .args([command, "tests/fixtures/in-band.svg"])
+            .assert()
+            .code(2)
+            .stdout("")
+            .stderr(contains(format!("diagctl: {command}: not yet implemented")));
+    }
+}

@@ -19,13 +19,26 @@ pub enum Command {
         /// Where the SVG is displayed: inlined in HTML, or through a Markdown image
         #[arg(long, value_enum, default_value_t = Target::Html)]
         target: Target,
+        /// Print one JSON object on stdout instead of text
+        #[arg(long)]
+        json: bool,
         #[arg(required = true, value_name = "FILE")]
         files: Vec<PathBuf>,
     },
     /// (not yet implemented) Conservative SVGO-style optimization
-    Optimize { file: PathBuf },
+    Optimize {
+        /// Print one JSON object on stdout instead of text
+        #[arg(long)]
+        json: bool,
+        file: PathBuf,
+    },
     /// (not yet implemented) Re-render and byte-diff freshness check
-    Freshness { file: PathBuf },
+    Freshness {
+        /// Print one JSON object on stdout instead of text
+        #[arg(long)]
+        json: bool,
+        file: PathBuf,
+    },
 }
 
 /// Display target for `check`.

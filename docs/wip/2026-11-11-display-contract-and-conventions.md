@@ -40,6 +40,11 @@ Date: 2026-11-11. Source: cross-tool review of pixctl, tblctl and diagctl.
      AD-0001. The work is three PRs: many files, then the `--json` envelope,
      then the human output (colour, summary line, `--help` examples,
      `--strict`).
+   - Decided 2026-11-26 for the `--json` PR: a `check` result is
+     `{file, check, layer, status, detail}`, one per check per file; the summary
+     is `{checks, pass, fail}`. Error codes are `read_failed`, `parse_failed`
+     and `not_implemented` (the `optimize` and `freshness` stubs, with no
+     `file`). Text output does not change in this PR.
 4. **Docs layout.** Working memory lives in tracked `docs/wip/`. Remove the
    `/wip/superpowers/` ignore entry. Move the local `wip/superpowers/` notes for
    shipped work to `docs/archive/`, and the notes for open work (the ascii

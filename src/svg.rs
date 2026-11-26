@@ -5,9 +5,35 @@ pub struct Svg {
     pub tree: usvg::Tree,
 }
 
-pub fn load(path: &Path) -> anyhow::Result<Svg> {
-    let raw = std::fs::read_to_string(path)?;
-    let tree = usvg::Tree::from_str(&raw, &usvg::Options::default())?;
+/// Why a file could not be loaded.
+#[derive(Debug)]
+pub enum LoadError {
+    Read(std::io::Error),
+    Parse(usvg::Error),
+}
+
+impl LoadError {
+    /// The stable error code reported in the JSON envelope.
+    pub fn code(&self) -> &'static str {
+        match self {
+            LoadError::Read(_) => "read_failed",
+            LoadError::Parse(_) => "parse_failed",
+        }
+    }
+}
+
+impl std::fmt::Display for LoadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LoadError::Read(err) => err.fmt(f),
+            LoadError::Parse(err) => err.fmt(f),
+        }
+    }
+}
+
+pub fn load(path: &Path) -> Result<Svg, LoadError> {
+    let raw = std::fs::read_to_string(path).map_err(LoadError::Read)?;
+    let tree = usvg::Tree::from_str(&raw, &usvg::Options::default()).map_err(LoadError::Parse)?;
     Ok(Svg { raw, tree })
 }
 
