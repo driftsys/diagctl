@@ -54,6 +54,40 @@ One standalone binary (zero runtime dependencies) with these subcommands:
 - **`freshness`** — re-render → optimize → byte-diff _(not yet implemented;
   exit 2)_.
 
+With `--json`, every command prints one pretty-printed JSON object on stdout,
+also when there are errors (the envelope of tblctl
+[AD-0005](https://github.com/driftsys/tblctl/blob/main/docs/decisions/0005-json-envelope-and-human-output.md)):
+
+```json
+{
+  "schema": "diagctl/check/v1",
+  "results": [
+    {
+      "file": "a.svg",
+      "check": "viewbox-present",
+      "layer": 0,
+      "status": "pass",
+      "detail": "root <svg> has a viewBox"
+    }
+  ],
+  "summary": { "checks": 1, "pass": 1, "fail": 0 },
+  "errors": []
+}
+```
+
+- `results`: for `check`, one object per check per file, in the order of the
+  text output. `status` is `pass` or `fail`.
+- `summary`: for `check`, `{checks, pass, fail}`. `optimize` and `freshness`
+  give empty `results` and `summary`.
+- `errors`: one object per operational error, with a stable `code`, a `message`
+  and, when the error is about one file, `file`. The codes are `read_failed`
+  (including a file that is not UTF-8 text), `parse_failed` and
+  `not_implemented`. Each error is also printed on stderr as
+  `diagctl: <message>`.
+- The exit codes are the same as in text mode. Argument errors (an unknown flag,
+  a missing `FILE` argument) are printed by the argument parser as text, with
+  exit 2 and no JSON.
+
 It **reimplements** these checks in one binary rather than gluing svgo / svglint
 / xmllint / contrast tools together — so consumers get a single dependency-free
 gate.
