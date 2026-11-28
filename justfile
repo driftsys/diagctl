@@ -87,7 +87,7 @@ verify: lint-commits build
 
 # Cut a release commit + tag locally with git-std (changelog, version bump).
 # Requires a clean main equal to origin/main whose `ci` run passed. Pass
-# git-std options, e.g. `just release --first-release`. Publish with
+# git-std options, e.g. `just release --release-as minor`. Publish with
 # `just release-push`.
 release *ARGS: toolchain-check
     #!/usr/bin/env bash
