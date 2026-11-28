@@ -1,5 +1,6 @@
 //! Writes command output: text lines, or the JSON envelope of tblctl AD-0005.
 
+use anstyle::{AnsiColor, Style};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::io::Write;
@@ -12,6 +13,17 @@ pub struct Error {
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
+}
+
+/// The styles of the state words in text output.
+pub const GREEN: Style = AnsiColor::Green.on_default();
+pub const RED: Style = AnsiColor::Red.on_default();
+
+/// Returns `word` in `style`. The ANSI codes are removed on write unless
+/// stdout is a terminal or `CLICOLOR_FORCE` is set; `NO_COLOR` removes them
+/// in all cases.
+pub fn paint(word: &str, style: Style) -> String {
+    format!("{style}{word}{style:#}")
 }
 
 /// Writes the output of `command` and returns the exit code: 2 if there is
@@ -49,7 +61,8 @@ pub fn finish(
     };
     // A closed stdout (for example `| head`) is not an error: the exit code
     // still reports the result.
-    match std::io::stdout().lock().write_all(body.as_bytes()) {
+    let mut stdout = anstream::AutoStream::auto(std::io::stdout().lock());
+    match stdout.write_all(body.as_bytes()) {
         Err(err) if err.kind() != std::io::ErrorKind::BrokenPipe => {
             let _ = writeln!(std::io::stderr(), "diagctl: {err}");
             return 2;

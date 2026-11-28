@@ -1,6 +1,6 @@
 use crate::checks::{self, Status};
 use crate::cli::Target;
-use crate::output::{self, Error};
+use crate::output::{self, paint, Error, GREEN, RED};
 use crate::svg;
 use serde::Serialize;
 use serde_json::json;
@@ -16,11 +16,23 @@ struct Report {
     detail: String,
 }
 
+/// "1 check" or "N checks".
+fn checks(n: usize) -> String {
+    if n == 1 {
+        "1 check".to_string()
+    } else {
+        format!("{n} checks")
+    }
+}
+
 /// Checks each file in order. A file that cannot be read or parsed as SVG is
 /// reported as an error and the other files are still checked. Exit code: 2
 /// if any file could not be read or parsed, otherwise 1 if any check failed,
 /// otherwise 0.
-pub fn run(files: &[PathBuf], target: Target, json: bool) -> anyhow::Result<i32> {
+///
+/// `_strict` turns REVIEW into a failure. No check reports REVIEW yet, so
+/// the flag has no effect.
+pub fn run(files: &[PathBuf], target: Target, json: bool, _strict: bool) -> anyhow::Result<i32> {
     let many = files.len() > 1;
     let mut reports = Vec::new();
     let mut errors = Vec::new();
@@ -43,8 +55,8 @@ pub fn run(files: &[PathBuf], target: Target, json: bool) -> anyhow::Result<i32>
         }
         for r in checks::run_all(&svg, target) {
             let tag = match r.status {
-                Status::Pass => "PASS",
-                Status::Fail => "FAIL",
+                Status::Pass => paint("PASS", GREEN),
+                Status::Fail => paint("FAIL", RED),
             };
             text.push_str(&format!("{tag}  [L{}] {}  {}\n", r.layer, r.id, r.detail));
             reports.push(Report {
@@ -57,6 +69,15 @@ pub fn run(files: &[PathBuf], target: Target, json: bool) -> anyhow::Result<i32>
         }
     }
     let failed = reports.iter().filter(|r| r.status == Status::Fail).count();
+    // No summary line when every file failed to load: "0 checks" would read
+    // as a clean result.
+    if errors.len() < files.len() {
+        text.push_str(&format!(
+            "{}: {} passed, {failed} failed\n",
+            checks(reports.len()),
+            reports.len() - failed
+        ));
+    }
     let summary = json!({
         "checks": reports.len(),
         "pass": reports.len() - failed,
@@ -71,4 +92,16 @@ pub fn run(files: &[PathBuf], target: Target, json: bool) -> anyhow::Result<i32>
         &text,
         failed > 0,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::checks;
+
+    #[test]
+    fn checks_uses_singular_for_one() {
+        assert_eq!(checks(0), "0 checks");
+        assert_eq!(checks(1), "1 check");
+        assert_eq!(checks(11), "11 checks");
+    }
 }
