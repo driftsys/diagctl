@@ -3,8 +3,9 @@ name: ci
 # CI installs tools and then runs the justfile recipes. It holds no copy of any
 # gate command: each is defined once, in the justfile, and both sides run that
 # definition. The one exception is the musl-build job, which cross-compiles the
-# release targets with cargo zigbuild and has no local recipe. Every tool install runs under `set -o pipefail` and ends by
-# running the tool it installed, so a failed download fails its own step.
+# release targets with cargo zigbuild and has no local recipe. Every tool
+# install runs under `set -o pipefail` and ends by running the tool it
+# installed, so a failed download fails its own step.
 
 on:
   push:
