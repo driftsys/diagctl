@@ -3,7 +3,9 @@ use predicates::prelude::*;
 use predicates::str::contains;
 
 fn diagctl() -> Command {
-    Command::cargo_bin("diagctl").unwrap()
+    let mut cmd = Command::cargo_bin("diagctl").unwrap();
+    cmd.env_remove("CLICOLOR_FORCE").env_remove("NO_COLOR");
+    cmd
 }
 
 #[test]
@@ -97,7 +99,7 @@ fn check_markdown_passes_sized_svg() {
 }
 
 /// Check output lines without the target-specific lines (size, font and
-/// background).
+/// background) and without the summary line.
 fn lines_without_target_checks(out: &[u8]) -> Vec<String> {
     String::from_utf8_lossy(out)
         .lines()
@@ -105,6 +107,7 @@ fn lines_without_target_checks(out: &[u8]) -> Vec<String> {
             !l.contains("dimensions")
                 && !l.contains("min-font-size")
                 && !l.contains("opaque-background")
+                && !is_summary(l)
         })
         .map(str::to_string)
         .collect()
@@ -120,13 +123,14 @@ fn check_targets_differ_only_in_size_font_and_background_checks() {
             .unwrap()
             .stdout;
         let html_rest = lines_without_target_checks(&html);
-        // html has a size and a font line; markdown also has a background line.
+        // html has a size line, a font line and the summary line; markdown
+        // also has a background line.
         assert_eq!(
-            html_rest.len() + 2,
+            html_rest.len() + 3,
             String::from_utf8_lossy(&html).lines().count()
         );
         assert_eq!(
-            html_rest.len() + 3,
+            html_rest.len() + 4,
             String::from_utf8_lossy(&md).lines().count()
         );
         assert_eq!(lines_without_target_checks(&md), html_rest, "{fixture}");
@@ -203,10 +207,16 @@ fn check_requires_a_file() {
         .stderr(contains("<FILE>..."));
 }
 
-/// Splits check output into (header, result lines) blocks.
+/// True for the summary line that ends check output.
+fn is_summary(line: &str) -> bool {
+    line.contains(" passed, ") && line.ends_with(" failed")
+}
+
+/// Splits check output into (header, result lines) blocks. The summary line
+/// is skipped.
 fn blocks(out: &str) -> Vec<(String, Vec<String>)> {
     let mut blocks: Vec<(String, Vec<String>)> = Vec::new();
-    for line in out.lines() {
+    for line in out.lines().filter(|l| !is_summary(l)) {
         if line.starts_with("PASS") || line.starts_with("FAIL") {
             blocks.last_mut().unwrap().1.push(line.to_string());
         } else {
@@ -791,5 +801,216 @@ fn argument_errors_print_no_json() {
         ],
     ] {
         diagctl().args(&args).assert().code(2).stdout("");
+    }
+}
+
+fn stdout_text(args: &[&str], code: i32) -> String {
+    String::from_utf8(check_stdout(args, code)).unwrap()
+}
+
+/// The (passed, failed) counts of the PASS and FAIL lines in `out`.
+fn counted(out: &str) -> (usize, usize) {
+    let pass = out.lines().filter(|l| l.starts_with("PASS")).count();
+    let fail = out.lines().filter(|l| l.starts_with("FAIL")).count();
+    (pass, fail)
+}
+
+#[test]
+fn check_ends_with_summary_line() {
+    let out = stdout_text(&["check", "tests/fixtures/in-band.svg"], 0);
+    assert!(out.ends_with("\n11 checks: 11 passed, 0 failed\n"), "{out}");
+}
+
+#[test]
+fn check_summary_counts_every_file_once_at_the_end() {
+    let out = stdout_text(
+        &[
+            "check",
+            "tests/fixtures/in-band.svg",
+            "tests/fixtures/strip.svg",
+        ],
+        1,
+    );
+    let (pass, fail) = counted(&out);
+    assert!(fail > 0);
+    let summary = format!("{} checks: {pass} passed, {fail} failed", pass + fail);
+    assert_eq!(out.lines().last().unwrap(), summary, "{out}");
+    assert_eq!(out.lines().filter(|l| is_summary(l)).count(), 1, "{out}");
+}
+
+#[test]
+fn check_summary_counts_only_files_that_load() {
+    let out = stdout_text(
+        &[
+            "check",
+            "tests/fixtures/does-not-exist.svg",
+            "tests/fixtures/in-band.svg",
+        ],
+        2,
+    );
+    assert_eq!(
+        out.lines().last().unwrap(),
+        "11 checks: 11 passed, 0 failed"
+    );
+}
+
+#[test]
+fn check_prints_no_summary_when_every_file_fails_to_load() {
+    let out = stdout_text(
+        &[
+            "check",
+            "tests/fixtures/does-not-exist.svg",
+            "tests/fixtures/malformed.svg",
+        ],
+        2,
+    );
+    assert_eq!(out, "");
+}
+
+#[test]
+fn check_text_has_no_colour_when_piped() {
+    let out = stdout_text(&["check", "tests/fixtures/strip.svg"], 1);
+    assert!(!out.contains('\x1b'), "{out:?}");
+}
+
+#[test]
+fn clicolor_force_colours_only_the_state_word() {
+    let out = diagctl()
+        .args([
+            "check",
+            "tests/fixtures/in-band.svg",
+            "tests/fixtures/strip.svg",
+        ])
+        .env("CLICOLOR_FORCE", "1")
+        .output()
+        .unwrap();
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(
+        text.contains("\x1b[32mPASS\x1b[0m  [L0] viewbox-present  "),
+        "{text:?}"
+    );
+    assert!(
+        text.contains("\x1b[31mFAIL\x1b[0m  [L2] aspect-ratio  "),
+        "{text:?}"
+    );
+    // Without the coloured state words, no ANSI code is left anywhere, and
+    // the text equals the plain output.
+    let plain = text
+        .replace("\x1b[32mPASS\x1b[0m", "PASS")
+        .replace("\x1b[31mFAIL\x1b[0m", "FAIL");
+    assert!(!plain.contains('\x1b'), "{text:?}");
+    assert_eq!(
+        plain,
+        stdout_text(
+            &[
+                "check",
+                "tests/fixtures/in-band.svg",
+                "tests/fixtures/strip.svg"
+            ],
+            1
+        )
+    );
+}
+
+#[test]
+fn no_color_wins_over_clicolor_force() {
+    let out = diagctl()
+        .args(["check", "tests/fixtures/strip.svg"])
+        .env("CLICOLOR_FORCE", "1")
+        .env("NO_COLOR", "1")
+        .output()
+        .unwrap();
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(!text.contains('\x1b'), "{text:?}");
+    assert!(text.starts_with("PASS  [L0] viewbox-present"), "{text:?}");
+}
+
+#[test]
+fn check_json_has_no_colour_or_summary_line() {
+    let out = diagctl()
+        .args(["check", "--json", "tests/fixtures/strip.svg"])
+        .env("CLICOLOR_FORCE", "1")
+        .output()
+        .unwrap();
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(!text.contains('\x1b'), "{text:?}");
+    serde_json::from_str::<serde_json::Value>(&text).unwrap();
+}
+
+#[test]
+fn strict_is_accepted_and_has_no_effect_yet() {
+    for (fixture, code) in [
+        ("tests/fixtures/in-band.svg", 0),
+        ("tests/fixtures/strip.svg", 1),
+    ] {
+        assert_eq!(
+            check_stdout(&["check", "--strict", fixture], code),
+            check_stdout(&["check", fixture], code),
+            "{fixture}"
+        );
+    }
+}
+
+#[test]
+fn help_shows_examples_and_readme_link() {
+    diagctl()
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(contains("Examples:\n  diagctl check "))
+        .stdout(contains(
+            "Documentation: https://github.com/driftsys/diagctl#readme",
+        ));
+    for command in ["check", "optimize", "freshness"] {
+        diagctl()
+            .args([command, "--help"])
+            .assert()
+            .success()
+            .stdout(contains(format!("Examples:\n  diagctl {command} ")));
+    }
+    diagctl()
+        .args(["check", "--help"])
+        .assert()
+        .stdout(contains("--strict"));
+}
+
+#[test]
+fn empty_colour_variables_are_ignored() {
+    // An empty NO_COLOR does not turn colour off.
+    let out = diagctl()
+        .args(["check", "tests/fixtures/in-band.svg"])
+        .env("CLICOLOR_FORCE", "1")
+        .env("NO_COLOR", "")
+        .output()
+        .unwrap();
+    assert!(String::from_utf8(out.stdout).unwrap().contains('\x1b'));
+    // An empty CLICOLOR_FORCE does not turn colour on.
+    let out = diagctl()
+        .args(["check", "tests/fixtures/in-band.svg"])
+        .env("CLICOLOR_FORCE", "")
+        .output()
+        .unwrap();
+    assert!(!String::from_utf8(out.stdout).unwrap().contains('\x1b'));
+}
+
+#[test]
+fn help_ends_with_readme_link() {
+    let out = diagctl().arg("--help").output().unwrap();
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(
+        text.trim_end()
+            .ends_with("Documentation: https://github.com/driftsys/diagctl#readme"),
+        "{text}"
+    );
+}
+
+#[test]
+fn strict_is_only_on_check() {
+    for command in ["optimize", "freshness"] {
+        diagctl()
+            .args([command, "--strict", "tests/fixtures/in-band.svg"])
+            .assert()
+            .code(2)
+            .stderr(contains("unexpected argument '--strict'"));
     }
 }

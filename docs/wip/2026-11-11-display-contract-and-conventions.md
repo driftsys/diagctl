@@ -45,6 +45,9 @@ Date: 2026-11-11. Source: cross-tool review of pixctl, tblctl and diagctl.
      is `{checks, pass, fail}`. Error codes are `read_failed`, `parse_failed`
      and `not_implemented` (the `optimize` and `freshness` stubs, with no
      `file`). Text output does not change in this PR.
+   - Decided 2026-11-28 for the human-output PR, as in tblctl: one summary line
+     at the end, counted over every file and left out when no file loads; only
+     the state word is coloured; `--strict` is on `check` only.
 4. **Docs layout.** Working memory lives in tracked `docs/wip/`. Remove the
    `/wip/superpowers/` ignore entry. Move the local `wip/superpowers/` notes for
    shipped work to `docs/archive/`, and the notes for open work (the ascii
