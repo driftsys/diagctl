@@ -893,13 +893,23 @@ fn clicolor_force_colours_only_the_state_word() {
         text.contains("\x1b[31mFAIL\x1b[0m  [L2] aspect-ratio  "),
         "{text:?}"
     );
-    // File headers and the summary line stay plain.
-    for line in text.lines() {
-        if !line.starts_with('\x1b') {
-            assert!(!line.contains('\x1b'), "{text:?}");
-        }
-    }
-    assert!(text.starts_with("tests/fixtures/in-band.svg\n"), "{text:?}");
+    // Without the coloured state words, no ANSI code is left anywhere, and
+    // the text equals the plain output.
+    let plain = text
+        .replace("\x1b[32mPASS\x1b[0m", "PASS")
+        .replace("\x1b[31mFAIL\x1b[0m", "FAIL");
+    assert!(!plain.contains('\x1b'), "{text:?}");
+    assert_eq!(
+        plain,
+        stdout_text(
+            &[
+                "check",
+                "tests/fixtures/in-band.svg",
+                "tests/fixtures/strip.svg"
+            ],
+            1
+        )
+    );
 }
 
 #[test]
@@ -962,4 +972,45 @@ fn help_shows_examples_and_readme_link() {
         .args(["check", "--help"])
         .assert()
         .stdout(contains("--strict"));
+}
+
+#[test]
+fn empty_colour_variables_are_ignored() {
+    // An empty NO_COLOR does not turn colour off.
+    let out = diagctl()
+        .args(["check", "tests/fixtures/in-band.svg"])
+        .env("CLICOLOR_FORCE", "1")
+        .env("NO_COLOR", "")
+        .output()
+        .unwrap();
+    assert!(String::from_utf8(out.stdout).unwrap().contains('\x1b'));
+    // An empty CLICOLOR_FORCE does not turn colour on.
+    let out = diagctl()
+        .args(["check", "tests/fixtures/in-band.svg"])
+        .env("CLICOLOR_FORCE", "")
+        .output()
+        .unwrap();
+    assert!(!String::from_utf8(out.stdout).unwrap().contains('\x1b'));
+}
+
+#[test]
+fn help_ends_with_readme_link() {
+    let out = diagctl().arg("--help").output().unwrap();
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(
+        text.trim_end()
+            .ends_with("Documentation: https://github.com/driftsys/diagctl#readme"),
+        "{text}"
+    );
+}
+
+#[test]
+fn strict_is_only_on_check() {
+    for command in ["optimize", "freshness"] {
+        diagctl()
+            .args([command, "--strict", "tests/fixtures/in-band.svg"])
+            .assert()
+            .code(2)
+            .stderr(contains("unexpected argument '--strict'"));
+    }
 }

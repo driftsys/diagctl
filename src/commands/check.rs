@@ -16,13 +16,15 @@ struct Report {
     detail: String,
 }
 
-/// "1 check" or "N checks".
-fn checks(n: usize) -> String {
-    if n == 1 {
+/// The last line of text output: "N checks: P passed, F failed", with
+/// "1 check" in the singular.
+fn summary_line(total: usize, failed: usize) -> String {
+    let checks = if total == 1 {
         "1 check".to_string()
     } else {
-        format!("{n} checks")
-    }
+        format!("{total} checks")
+    };
+    format!("{checks}: {} passed, {failed} failed\n", total - failed)
 }
 
 /// Checks each file in order. A file that cannot be read or parsed as SVG is
@@ -72,11 +74,7 @@ pub fn run(files: &[PathBuf], target: Target, json: bool, _strict: bool) -> anyh
     // No summary line when every file failed to load: "0 checks" would read
     // as a clean result.
     if errors.len() < files.len() {
-        text.push_str(&format!(
-            "{}: {} passed, {failed} failed\n",
-            checks(reports.len()),
-            reports.len() - failed
-        ));
+        text.push_str(&summary_line(reports.len(), failed));
     }
     let summary = json!({
         "checks": reports.len(),
@@ -96,12 +94,13 @@ pub fn run(files: &[PathBuf], target: Target, json: bool, _strict: bool) -> anyh
 
 #[cfg(test)]
 mod tests {
-    use super::checks;
+    use super::summary_line;
 
     #[test]
-    fn checks_uses_singular_for_one() {
-        assert_eq!(checks(0), "0 checks");
-        assert_eq!(checks(1), "1 check");
-        assert_eq!(checks(11), "11 checks");
+    fn summary_line_uses_singular_for_one_check() {
+        assert_eq!(summary_line(1, 0), "1 check: 1 passed, 0 failed\n");
+        assert_eq!(summary_line(1, 1), "1 check: 0 passed, 1 failed\n");
+        assert_eq!(summary_line(0, 0), "0 checks: 0 passed, 0 failed\n");
+        assert_eq!(summary_line(22, 2), "22 checks: 20 passed, 2 failed\n");
     }
 }

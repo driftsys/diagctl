@@ -20,8 +20,8 @@ pub const GREEN: Style = AnsiColor::Green.on_default();
 pub const RED: Style = AnsiColor::Red.on_default();
 
 /// Returns `word` in `style`. The ANSI codes are removed on write unless
-/// stdout is a terminal or `CLICOLOR_FORCE` is set; `NO_COLOR` removes them
-/// in all cases.
+/// stdout is a terminal or `CLICOLOR_FORCE` is set to a non-empty value; a
+/// non-empty `NO_COLOR` removes them in all cases.
 pub fn paint(word: &str, style: Style) -> String {
     format!("{style}{word}{style:#}")
 }
