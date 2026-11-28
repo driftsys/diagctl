@@ -1,5 +1,6 @@
 # justfile — the one definition of every gate. CI (.github/workflows/ci.yml)
-# runs these recipes and holds no copy of any gate command.
+# runs these recipes and holds no copy of any gate command. Its one other step,
+# the musl cross-compile, is not a local gate.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 # On Windows "bash" can resolve to the WSL stub; Git Bash ships sh.exe.

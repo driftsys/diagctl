@@ -21,8 +21,8 @@ just verify     # commit-message lint + full gate — run before opening a PR
 just release    # git-std bump (changelog + tag) on a clean, CI-green main
 ```
 
-CI (`.github/workflows/ci.yml`) runs the gates as `just` recipes, and also
-cross-compiles the musl release targets with `cargo zigbuild`. Releases are
+CI (`.github/workflows/ci.yml`) runs each gate through its `just` recipe, and
+also cross-compiles the musl release targets with `cargo zigbuild`. Releases are
 built by cargo-dist (`release.yml`) on a `v*` tag.
 
 ## Workflow
