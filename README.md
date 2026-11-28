@@ -156,8 +156,9 @@ bezier/segment math (no heavy geometry dep), and a static binary is ~2–8 MB vs
 
 ## Build, test, run
 
-Requires a Rust toolchain; `rust-toolchain.toml` pins the version. Gates are
-`just` recipes, and CI runs nothing else.
+Requires a Rust toolchain; `rust-toolchain.toml` pins the version. Each gate is
+a `just` recipe, and CI runs the gate recipes. CI also cross-compiles the musl
+release targets with `cargo zigbuild`.
 
 ```bash
 just                   # list recipes

@@ -1,5 +1,6 @@
 # justfile — the one definition of every gate. CI (.github/workflows/ci.yml)
-# runs these recipes and holds no copy of any gate command.
+# runs these recipes and holds no copy of any gate command. Its one other step,
+# the musl cross-compile, is not a local gate.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 # On Windows "bash" can resolve to the WSL stub; Git Bash ships sh.exe.
@@ -87,7 +88,7 @@ verify: lint-commits build
 
 # Cut a release commit + tag locally with git-std (changelog, version bump).
 # Requires a clean main equal to origin/main whose `ci` run passed. Pass
-# git-std options, e.g. `just release --first-release`. Publish with
+# git-std options, e.g. `just release --release-as minor`. Publish with
 # `just release-push`.
 release *ARGS: toolchain-check
     #!/usr/bin/env bash
